@@ -32,22 +32,24 @@
       </a>
 
       <nav class="main-nav" aria-label="Điều hướng chính">
-        <a href="#projects">Dự Án</a>
+        <a href="near-me.html">Gần bạn</a>
+        <a href="stores.html">Gian hàng</a>
+        <a href="projects.html">Dự án</a>
         <a href="news.html">Tin Tức</a>
         <a href="#about">Giới thiệu</a>
-        <a href="#contact">Liên hệ</a>
+        <a href="contact.html">Liên hệ</a>
       </nav>
 
       <div class="header-actions">
-        <a class="icon-button" href="#projects" aria-label="Tài khoản cư dân">
+        <a class="icon-button" href="projects.html" aria-label="Danh sách dự án">
           <i data-lucide="user-round" aria-hidden="true"></i>
         </a>
         <a class="icon-button" href="tel:0988458783" aria-label="Gọi hotline">
           <i data-lucide="phone" aria-hidden="true"></i>
         </a>
-        <label class="top-search" for="searchInput">
+        <label class="top-search" for="headerSearchInput">
           <i data-lucide="search" aria-hidden="true"></i>
-          <input id="searchInput" type="search" placeholder="Tìm kiếm..." autocomplete="off" />
+          <input id="headerSearchInput" type="search" placeholder="Tìm kiếm..." autocomplete="off" />
         </label>
       </div>
     </header>
@@ -60,21 +62,58 @@
         />
       </section>
 
-      <section class="find-section" id="projects" aria-labelledby="projectsTitle">
-        <div class="section-heading centered">
-          <h1 id="projectsTitle">Bạn đang ở đâu?</h1>
-          <p>Chúng tôi sẽ giúp bạn tìm kiếm mọi thứ mà bạn cần</p>
-          <span class="title-divider" aria-hidden="true"></span>
+      <section class="quick-filter-section" aria-labelledby="quickFilterTitle">
+        <div class="quick-filter-card" role="search">
+          <label class="quick-filter-field region-field" for="regionSelect">
+            <i data-lucide="map" aria-hidden="true"></i>
+            <select id="regionSelect" aria-label="Chọn khu vực"></select>
+          </label>
+
+          <label class="quick-filter-field project-field" for="projectSelect">
+            <i data-lucide="building-2" aria-hidden="true"></i>
+            <select id="projectSelect" aria-label="Chọn dự án"></select>
+          </label>
+
+          <label class="quick-filter-field type-field" for="searchTypeSelect">
+            <i data-lucide="layout-list" aria-hidden="true"></i>
+            <select id="searchTypeSelect" aria-label="Chọn loại nội dung cần tìm">
+              <option value="all">Tất cả nội dung</option>
+              <option value="info">Thông tin</option>
+              <option value="stores">Gian hàng</option>
+              <option value="services">Dịch vụ</option>
+            </select>
+          </label>
+
+          <label class="quick-filter-field service-field" for="serviceSearchInput">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input
+              id="serviceSearchInput"
+              type="search"
+              placeholder="Tìm thông tin, gian hàng, dịch vụ..."
+              autocomplete="off"
+            />
+          </label>
+
+          <button class="quick-filter-button" type="button" id="serviceSearchButton">
+            <i data-lucide="search" aria-hidden="true"></i>
+            Tìm kiếm
+          </button>
+
+          <a class="quick-contact" href="contact.html">
+            <i data-lucide="handshake" aria-hidden="true"></i>
+            Liên hệ hợp tác
+          </a>
         </div>
 
-        <div class="segmented" id="regionTabs" aria-label="Chọn miền">
-          <button class="is-active" type="button" data-region="all">Tất cả</button>
-          <button type="button" data-region="north">Miền Bắc</button>
-          <button type="button" data-region="central">Miền Trung</button>
-          <button type="button" data-region="south">Miền Nam</button>
-        </div>
+        <div class="hot-services-panel">
+          <div class="section-heading compact" id="quickFilterTitle">
+            <p class="eyebrow">Đề xuất theo khu vực</p>
+            <h2 id="hotServicesTitle">Top gian hàng được đề xuất</h2>
+            <p id="hotServicesNote">Chọn khu vực và dự án để xem gợi ý phù hợp nhất.</p>
+          </div>
 
-        <div class="project-grid" id="projectGrid" aria-live="polite"></div>
+          <div class="hot-service-grid" id="hotServiceGrid" aria-live="polite"></div>
+        </div>
       </section>
 
       <section class="news-section" id="news" aria-labelledby="newsTitle">
@@ -119,7 +158,10 @@
             <i data-lucide="chevron-right" aria-hidden="true"></i>
             <a href="news.html">Thông tin cần biết</a>
           </li>
-          <li><i data-lucide="chevron-right" aria-hidden="true"></i>Liên hệ</li>
+          <li>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+            <a href="contact.html">Liên hệ hợp tác</a>
+          </li>
         </ul>
       </div>
       <div>

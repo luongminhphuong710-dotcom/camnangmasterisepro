@@ -1,99 +1,137 @@
-const { projects, stores, newsItems, regionMeta, fallbackImage } = window.CAMNANG_DATA;
+const { projects, stores, newsItems, regionMeta, storeCategories, fallbackImage } = window.CAMNANG_DATA;
 
-let selectedRegion = "all";
+const state = {
+  region: "all",
+  projectId: "all",
+  searchType: "all",
+  query: "",
+};
 
 const els = {};
 
 document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
+  hydrateControls();
   bindEvents();
   render();
   syncIcons();
 });
 
 function cacheElements() {
-  els.searchInput = document.querySelector("#searchInput");
-  els.regionTabs = document.querySelector("#regionTabs");
-  els.projectGrid = document.querySelector("#projectGrid");
+  els.headerSearchInput = document.querySelector("#headerSearchInput");
+  els.serviceSearchInput = document.querySelector("#serviceSearchInput");
+  els.regionSelect = document.querySelector("#regionSelect");
+  els.projectSelect = document.querySelector("#projectSelect");
+  els.searchTypeSelect = document.querySelector("#searchTypeSelect");
+  els.serviceSearchButton = document.querySelector("#serviceSearchButton");
+  els.hotServiceGrid = document.querySelector("#hotServiceGrid");
+  els.hotServicesTitle = document.querySelector("#hotServicesTitle");
+  els.hotServicesNote = document.querySelector("#hotServicesNote");
   els.newsGrid = document.querySelector("#newsGrid");
 }
 
-function bindEvents() {
-  els.searchInput?.addEventListener("input", render);
+function hydrateControls() {
+  renderRegionOptions();
+  renderProjectOptions();
+}
 
-  els.regionTabs?.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-region]");
-    if (!button) return;
-    selectedRegion = button.dataset.region;
-    els.regionTabs
-      .querySelectorAll("[data-region]")
-      .forEach((item) => item.classList.toggle("is-active", item === button));
+function bindEvents() {
+  els.regionSelect?.addEventListener("change", () => {
+    state.region = els.regionSelect.value;
+    state.projectId = "all";
+    renderProjectOptions();
     render();
+  });
+
+  els.projectSelect?.addEventListener("change", () => {
+    state.projectId = els.projectSelect.value;
+    const project = getProject(state.projectId);
+    if (project) {
+      state.region = project.region;
+      renderRegionOptions();
+      renderProjectOptions();
+    }
+    render();
+  });
+
+  els.searchTypeSelect?.addEventListener("change", () => {
+    state.searchType = els.searchTypeSelect.value;
+    render();
+  });
+
+  els.serviceSearchInput?.addEventListener("input", () => {
+    state.query = els.serviceSearchInput.value;
+    if (els.headerSearchInput) {
+      els.headerSearchInput.value = els.serviceSearchInput.value;
+    }
+    render();
+  });
+
+  els.headerSearchInput?.addEventListener("input", () => {
+    state.query = els.headerSearchInput.value;
+    if (els.serviceSearchInput) {
+      els.serviceSearchInput.value = els.headerSearchInput.value;
+    }
+    render();
+  });
+
+  els.serviceSearchButton?.addEventListener("click", () => {
+    document.querySelector(".hot-services-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   });
 }
 
 function render() {
-  renderProjects();
+  renderRecommendations();
   renderNews();
   hydrateImages();
   syncIcons();
 }
 
-function renderProjects() {
-  const items = filteredProjects();
+function renderRegionOptions() {
+  els.regionSelect.innerHTML = Object.entries(regionMeta)
+    .map(([id, meta]) => `<option value="${id}" ${id === state.region ? "selected" : ""}>${meta.label}</option>`)
+    .join("");
+}
+
+function renderProjectOptions() {
+  const projectOptions = projectsForRegion(state.region);
+  els.projectSelect.innerHTML = [
+    `<option value="all">Tất cả dự án</option>`,
+    ...projectOptions.map((project) => `<option value="${project.id}">${project.name}</option>`),
+  ].join("");
+  if (!projectOptions.some((project) => project.id === state.projectId)) {
+    state.projectId = "all";
+  }
+  els.projectSelect.value = state.projectId;
+}
+
+function renderRecommendations() {
+  const context = selectedContextLabel();
+  const query = normalize(state.query);
+  const isInfoMode = state.searchType === "info";
+  const items = isInfoMode ? filteredNews().slice(0, 6) : filteredStores().slice(0, 6);
+
+  els.hotServicesTitle.textContent = recommendationTitle();
+  els.hotServicesNote.textContent = recommendationNote(context, query);
 
   if (!items.length) {
-    els.projectGrid.innerHTML = `
+    els.hotServiceGrid.innerHTML = `
       <div class="no-results">
-        Không tìm thấy dự án phù hợp. Hãy thử từ khóa khác hoặc chọn lại miền.
+        Chưa có nội dung phù hợp với bộ lọc này. Hãy thử đổi khu vực, dự án hoặc từ khóa.
       </div>
     `;
     return;
   }
 
-  els.projectGrid.innerHTML = items
-    .map((project) => {
-      const projectStores = stores.filter((store) => store.projectId === project.id);
-      return `
-        <article class="project-card">
-          <figure>
-            <img src="${project.image}" alt="${project.name}" loading="lazy" />
-          </figure>
-          <div class="project-body">
-            <div class="project-heading">
-              <span>${regionMeta[project.region].label} / ${project.city}</span>
-              <h3>${project.name}</h3>
-            </div>
-            <p>${project.location}</p>
-            <div class="project-meta">
-              <span>${project.segment}</span>
-              <span>${project.status}</span>
-              <span>${projectStores.length} gian hàng</span>
-            </div>
-            <div class="project-actions">
-              <a class="primary-action" href="project.html?id=${project.id}">
-                <i data-lucide="info" aria-hidden="true"></i>
-                Thông tin
-              </a>
-              <a class="secondary-action" href="stores.html?project=${project.id}">
-                <i data-lucide="store" aria-hidden="true"></i>
-                Gian hàng
-              </a>
-            </div>
-          </div>
-        </article>
-      `;
-    })
-    .join("");
+  els.hotServiceGrid.innerHTML = items.map(isInfoMode ? newsRecommendationCard : storeRecommendationCard).join("");
 }
 
 function renderNews() {
-  const query = normalizedQuery();
-  const items = latestNews(query).slice(0, 6);
+  const items = filteredNews().slice(0, 6);
 
   if (!items.length) {
     els.newsGrid.innerHTML = `
-      <div class="no-results">Chưa có tin tức phù hợp với bộ lọc hiện tại.</div>
+      <div class="no-results">Chưa có tin tức phù hợp với khu vực hiện tại.</div>
     `;
     return;
   }
@@ -114,42 +152,148 @@ function renderNews() {
     .join("");
 }
 
-function filteredProjects() {
-  const query = normalizedQuery();
-  return projects.filter((project) => {
-    const matchesRegion = selectedRegion === "all" || project.region === selectedRegion;
-    if (!matchesRegion) return false;
-    if (!query) return true;
-    return normalize(
-      [
-        project.name,
-        project.city,
-        project.location,
-        project.segment,
-        project.status,
-        project.summary,
-        regionMeta[project.region].label,
-      ].join(" ")
-    ).includes(query);
+function filteredStores() {
+  const query = normalize(state.query);
+  return stores
+    .filter((store) => {
+      const project = getProject(store.projectId);
+      const category = getCategory(store.category);
+      const matchesRegion = state.region === "all" || project.region === state.region;
+      const matchesProject = state.projectId === "all" || store.projectId === state.projectId;
+      const matchesType = state.searchType !== "services" || store.category === "service";
+      const matchesQuery =
+        !query ||
+        normalize([store.name, store.note, store.floor, category.label, project.name, project.city].join(" ")).includes(
+          query
+        );
+      return matchesRegion && matchesProject && matchesType && matchesQuery;
+    })
+    .sort((a, b) => b.rating - a.rating);
+}
+
+function filteredNews() {
+  const query = normalize(state.query);
+  const shouldFilterByQuery = state.searchType === "all" || state.searchType === "info";
+  return newsItems.filter((news) => {
+    const project = getProject(news.projectId);
+    const matchesRegion = state.region === "all" || news.region === state.region || project?.region === state.region;
+    const matchesProject = state.projectId === "all" || news.projectId === state.projectId;
+    const matchesQuery =
+      !shouldFilterByQuery ||
+      !query ||
+      normalize(
+        [news.title, news.category, news.date, news.excerpt, news.hashtags.join(" "), project?.name, project?.city].join(
+          " "
+        )
+      ).includes(query);
+    return matchesRegion && matchesProject && matchesQuery;
   });
 }
 
-function latestNews(query) {
-  if (!query) return newsItems;
-  return newsItems.filter((news) => {
-    const project = getProject(news.projectId);
-    return normalize(
-      [news.title, news.category, news.date, news.excerpt, project?.name, project?.city].join(" ")
-    ).includes(query);
-  });
+function storeRecommendationCard(store) {
+  const project = getProject(store.projectId);
+  const category = getCategory(store.category);
+  return `
+    <article class="hot-service-card">
+      <div class="hot-service-top">
+        <span class="hot-service-icon">
+          <i data-lucide="${category.icon}" aria-hidden="true"></i>
+        </span>
+        <div>
+          <span>${category.label} / ${project.city}</span>
+          <h3>${store.name}</h3>
+        </div>
+      </div>
+      <p>${store.note}</p>
+      <div class="hot-service-meta">
+        <span><i data-lucide="building-2" aria-hidden="true"></i>${project.name}</span>
+        <span><i data-lucide="map-pin" aria-hidden="true"></i>${store.floor}</span>
+        <span><i data-lucide="clock-3" aria-hidden="true"></i>${store.hours}</span>
+        <strong><i data-lucide="star" aria-hidden="true"></i>${store.rating.toFixed(1)}</strong>
+      </div>
+      <div class="project-actions wide">
+        <a class="primary-action" href="store.html?id=${store.id}">
+          <i data-lucide="external-link" aria-hidden="true"></i>
+          Xem chi tiết
+        </a>
+        <a class="secondary-action" href="stores.html?project=${project.id}">
+          <i data-lucide="store" aria-hidden="true"></i>
+          Gian hàng dự án
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+function newsRecommendationCard(news) {
+  const project = getProject(news.projectId);
+  return `
+    <article class="hot-service-card">
+      <div class="hot-service-top">
+        <span class="hot-service-icon">
+          <i data-lucide="newspaper" aria-hidden="true"></i>
+        </span>
+        <div>
+          <span>${news.category} / ${project ? project.city : regionMeta[news.region].label}</span>
+          <h3>${news.title}</h3>
+        </div>
+      </div>
+      <p>${news.excerpt}</p>
+      <div class="hot-service-meta">
+        <span><i data-lucide="calendar-days" aria-hidden="true"></i>${news.date}</span>
+        <span><i data-lucide="building-2" aria-hidden="true"></i>${project ? project.name : regionMeta[news.region].name}</span>
+      </div>
+      <div class="project-actions wide">
+        <a class="primary-action" href="article.html?id=${news.id}">
+          <i data-lucide="external-link" aria-hidden="true"></i>
+          Xem bài viết
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+function projectsForRegion(region) {
+  return projects.filter((project) => region === "all" || project.region === region);
+}
+
+function recommendationTitle() {
+  if (state.searchType === "info") return "Thông tin phù hợp";
+  if (state.searchType === "services") return "Top dịch vụ đang hot";
+  if (state.searchType === "stores") return "Top gian hàng phù hợp";
+  return hasActiveSearch() ? "Top gian hàng phù hợp" : "Top gian hàng được đề xuất";
+}
+
+function recommendationNote(context, query) {
+  if (!hasActiveSearch()) {
+    return "Chưa chọn khu vực hoặc từ khóa, hệ thống đang đề xuất các top gian hàng nổi bật.";
+  }
+
+  const queryText = query ? ` theo từ khóa "${state.query.trim()}"` : "";
+  if (state.searchType === "info") {
+    return `Đang lọc thông tin tại ${context}${queryText}.`;
+  }
+
+  return `Đang gợi ý gian hàng và dịch vụ tại ${context}${queryText}.`;
+}
+
+function hasActiveSearch() {
+  return state.region !== "all" || state.projectId !== "all" || state.searchType !== "all" || Boolean(normalize(state.query));
+}
+
+function selectedContextLabel() {
+  const project = state.projectId !== "all" ? getProject(state.projectId) : null;
+  if (project) return project.name;
+  if (state.region !== "all") return regionMeta[state.region].label;
+  return "tất cả khu vực";
 }
 
 function getProject(projectId) {
   return projects.find((project) => project.id === projectId);
 }
 
-function normalizedQuery() {
-  return normalize(els.searchInput?.value ?? "");
+function getCategory(categoryId) {
+  return storeCategories.find((category) => category.id === categoryId) ?? storeCategories[0];
 }
 
 function normalize(value) {

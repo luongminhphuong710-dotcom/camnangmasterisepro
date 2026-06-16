@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Dự án | Cẩm Nang Masterise</title>
+    <meta
+      name="description"
+      content="Khám phá danh sách dự án Masterise theo miền, tỉnh thành, phân khúc và truy cập nhanh thông tin hoặc gian hàng từng dự án."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="site-data.js"></script>
+    <script defer src="projects-page.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="Cẩm Nang Masterise">
+        <span class="brand-mark">CM</span>
+        <span>
+          <strong>Cẩm Nang Masterise</strong>
+          <small>Nhà tôi ở Masterise</small>
+        </span>
+      </a>
+
+      <nav class="main-nav" aria-label="Điều hướng chính">
+        <a href="near-me.html">Gần bạn</a>
+        <a href="stores.html">Gian hàng</a>
+        <a href="projects.html">Dự án</a>
+        <a href="news.html">Tin Tức</a>
+        <a href="index.html#about">Giới thiệu</a>
+        <a href="contact.html">Liên hệ</a>
+      </nav>
+
+      <div class="header-actions">
+        <a class="icon-button" href="projects.html" aria-label="Danh sách dự án">
+          <i data-lucide="user-round" aria-hidden="true"></i>
+        </a>
+        <a class="icon-button" href="tel:0988458783" aria-label="Gọi hotline">
+          <i data-lucide="phone" aria-hidden="true"></i>
+        </a>
+        <label class="top-search" for="projectHeaderSearchInput">
+          <i data-lucide="search" aria-hidden="true"></i>
+          <input id="projectHeaderSearchInput" type="search" placeholder="Tìm kiếm..." autocomplete="off" />
+        </label>
+      </div>
+    </header>
+
+    <main class="detail-page projects-page">
+      <section class="store-directory projects-filter-panel" aria-label="Bộ lọc dự án">
+        <div class="directory-filter-grid projects-filter-grid">
+          <label class="quick-filter-field" for="projectRegionFilter">
+            <i data-lucide="map" aria-hidden="true"></i>
+            <select id="projectRegionFilter" aria-label="Lọc theo miền"></select>
+          </label>
+
+          <label class="quick-filter-field" for="projectCityFilter">
+            <i data-lucide="map-pin" aria-hidden="true"></i>
+            <select id="projectCityFilter" aria-label="Lọc theo tỉnh hoặc thành phố"></select>
+          </label>
+
+          <label class="quick-filter-field" for="projectSegmentFilter">
+            <i data-lucide="layers-3" aria-hidden="true"></i>
+            <select id="projectSegmentFilter" aria-label="Lọc theo phân khúc"></select>
+          </label>
+
+          <label class="quick-filter-field" for="projectSearchInput">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input
+              id="projectSearchInput"
+              type="search"
+              placeholder="Tìm dự án, khu vực, trạng thái..."
+              autocomplete="off"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="projects-directory" aria-labelledby="projectsTitle">
+        <div class="section-heading centered">
+          <p class="eyebrow">Dự án Masterise</p>
+          <h1 id="projectsTitle">Khám phá nơi mình sống</h1>
+          <p>Chọn dự án để xem thông tin, gian hàng và các tiện ích phù hợp với khu vực của bạn.</p>
+          <span class="title-divider" aria-hidden="true"></span>
+        </div>
+
+        <div class="project-grid" id="projectGrid" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer" id="contact">
+      <div>
+        <h3>Liên hệ</h3>
+        <ul>
+          <li><i data-lucide="map-pin" aria-hidden="true"></i>Vinhomes Ocean Park 2-3</li>
+          <li><i data-lucide="phone" aria-hidden="true"></i>Hotline: 0988 458 783</li>
+          <li>
+            <i data-lucide="mail" aria-hidden="true"></i>
+            <a href="mailto:luongminhphuong710@gmail.com">luongminhphuong710@gmail.com</a>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h3>Thông tin</h3>
+        <ul>
+          <li><i data-lucide="chevron-right" aria-hidden="true"></i>Giới thiệu</li>
+          <li>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+            <a href="news.html">Thông tin cần biết</a>
+          </li>
+          <li>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+            <a href="contact.html">Liên hệ hợp tác</a>
+          </li>
+        </ul>
+      </div>
+      <div>
+        <h3>Theo dõi</h3>
+        <ul>
+          <li><i data-lucide="facebook" aria-hidden="true"></i>Page: Cẩm Nang Masterise</li>
+          <li><i data-lucide="music-2" aria-hidden="true"></i>TikTok: Cẩm Nang Masterise</li>
+          <li><i data-lucide="copyright" aria-hidden="true"></i>Copyright 2026</li>
+        </ul>
+      </div>
+    </footer>
+  </body>
+</html>
