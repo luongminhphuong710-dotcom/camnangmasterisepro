@@ -10,6 +10,9 @@ Thumbs.db
 *.log
 *.tmp
 screenshot-*.png
+.env
+.env.local
+.env.*.local
 
 # Dependencies if the project is upgraded later
 node_modules/
