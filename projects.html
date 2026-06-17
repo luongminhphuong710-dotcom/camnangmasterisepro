@@ -17,26 +17,28 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="header-menu.js"></script>
     <script defer src="site-data.js"></script>
     <script defer src="projects-page.js"></script>
+    <script defer src="theme-select.js"></script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="index.html" aria-label="Cẩm Nang Masterise">
         <span class="brand-mark">CM</span>
-        <span>
-          <strong>Cẩm Nang Masterise</strong>
-          <small>Nhà tôi ở Masterise</small>
-        </span>
       </a>
 
+      <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="siteMenu" aria-label="Mở menu">
+        <i data-lucide="menu" aria-hidden="true"></i>
+      </button>
+
+      <div class="header-menu" id="siteMenu">
       <nav class="main-nav" aria-label="Điều hướng chính">
         <a href="near-me.html">Gần bạn</a>
         <a href="stores.html">Gian hàng</a>
         <a href="projects.html">Dự án</a>
         <a href="news.html">Tin Tức</a>
-        <a href="index.html#about">Giới thiệu</a>
-        <a href="contact.html">Liên hệ</a>
+        <a href="contact.html">Liên hệ hợp tác</a>
       </nav>
 
       <div class="header-actions">
@@ -50,6 +52,7 @@
           <i data-lucide="search" aria-hidden="true"></i>
           <input id="projectHeaderSearchInput" type="search" placeholder="Tìm kiếm..." autocomplete="off" />
         </label>
+      </div>
       </div>
     </header>
 
@@ -99,7 +102,7 @@
       <div>
         <h3>Liên hệ</h3>
         <ul>
-          <li><i data-lucide="map-pin" aria-hidden="true"></i>Vinhomes Ocean Park 2-3</li>
+          <li><i data-lucide="map-pin" aria-hidden="true"></i>Timecity - Hà Nội</li>
           <li><i data-lucide="phone" aria-hidden="true"></i>Hotline: 0988 458 783</li>
           <li>
             <i data-lucide="mail" aria-hidden="true"></i>

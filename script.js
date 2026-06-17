@@ -18,7 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function cacheElements() {
-  els.headerSearchInput = document.querySelector("#headerSearchInput");
   els.serviceSearchInput = document.querySelector("#serviceSearchInput");
   els.regionSelect = document.querySelector("#regionSelect");
   els.projectSelect = document.querySelector("#projectSelect");
@@ -61,17 +60,6 @@ function bindEvents() {
 
   els.serviceSearchInput?.addEventListener("input", () => {
     state.query = els.serviceSearchInput.value;
-    if (els.headerSearchInput) {
-      els.headerSearchInput.value = els.serviceSearchInput.value;
-    }
-    render();
-  });
-
-  els.headerSearchInput?.addEventListener("input", () => {
-    state.query = els.headerSearchInput.value;
-    if (els.serviceSearchInput) {
-      els.serviceSearchInput.value = els.headerSearchInput.value;
-    }
     render();
   });
 
@@ -109,10 +97,11 @@ function renderRecommendations() {
   const context = selectedContextLabel();
   const query = normalize(state.query);
   const isInfoMode = state.searchType === "info";
-  const items = isInfoMode ? filteredNews().slice(0, 6) : filteredStores().slice(0, 6);
+  const items = isInfoMode ? filteredNews().slice(0, 6) : filteredStores().slice(0, 8);
 
   els.hotServicesTitle.textContent = recommendationTitle();
   els.hotServicesNote.textContent = recommendationNote(context, query);
+  els.hotServiceGrid.className = isInfoMode ? "hot-service-grid" : "store-grid";
 
   if (!items.length) {
     els.hotServiceGrid.innerHTML = `
@@ -194,37 +183,43 @@ function storeRecommendationCard(store) {
   const project = getProject(store.projectId);
   const category = getCategory(store.category);
   return `
-    <article class="hot-service-card">
-      <div class="hot-service-top">
-        <span class="hot-service-icon">
+    <article class="store-card">
+      <figure class="store-card-media">
+        <img src="${storeImage(store, project)}" alt="${store.name}" loading="lazy" />
+      </figure>
+      <div class="store-top">
+        <span class="store-icon">
           <i data-lucide="${category.icon}" aria-hidden="true"></i>
         </span>
         <div>
-          <span>${category.label} / ${project.city}</span>
+          <span class="store-tag">${category.label}</span>
           <h3>${store.name}</h3>
         </div>
       </div>
       <p>${store.note}</p>
-      <div class="hot-service-meta">
+      <div class="meta-list">
         <span><i data-lucide="building-2" aria-hidden="true"></i>${project.name}</span>
-        <span><i data-lucide="map-pin" aria-hidden="true"></i>${store.floor}</span>
+        <span><i data-lucide="map-pin" aria-hidden="true"></i>${store.floor} / ${project.city}</span>
         <span><i data-lucide="clock-3" aria-hidden="true"></i>${store.hours}</span>
-        <strong><i data-lucide="star" aria-hidden="true"></i>${store.rating.toFixed(1)}</strong>
+        <span><i data-lucide="star" aria-hidden="true"></i>${store.rating.toFixed(1)}/5 đánh giá</span>
       </div>
-      <div class="project-actions wide">
+      <div class="project-actions wide store-card-actions">
         <a class="primary-action" href="store.html?id=${store.id}">
           <i data-lucide="external-link" aria-hidden="true"></i>
           Xem chi tiết
         </a>
-        <a class="secondary-action" href="stores.html?project=${project.id}">
-          <i data-lucide="store" aria-hidden="true"></i>
-          Gian hàng dự án
+        <a class="secondary-action" href="tel:${store.phone.replace(/\s/g, "")}">
+          <i data-lucide="phone" aria-hidden="true"></i>
+          Gọi điện
         </a>
       </div>
     </article>
   `;
 }
 
+function storeImage(store, project) {
+  return store.image || project?.image || fallbackImage;
+}
 function newsRecommendationCard(news) {
   const project = getProject(news.projectId);
   return `

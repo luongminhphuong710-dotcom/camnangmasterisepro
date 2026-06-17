@@ -18,26 +18,28 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="header-menu.js"></script>
     <script defer src="site-data.js"></script>
     <script defer src="script.js"></script>
+    <script defer src="theme-select.js"></script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="index.html" aria-label="Cẩm Nang Masterise">
         <span class="brand-mark">CM</span>
-        <span>
-          <strong>Cẩm Nang Masterise</strong>
-          <small>Nhà tôi ở Masterise</small>
-        </span>
       </a>
 
+      <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="siteMenu" aria-label="Mở menu">
+        <i data-lucide="menu" aria-hidden="true"></i>
+      </button>
+
+      <div class="header-menu" id="siteMenu">
       <nav class="main-nav" aria-label="Điều hướng chính">
         <a href="near-me.html">Gần bạn</a>
         <a href="stores.html">Gian hàng</a>
         <a href="projects.html">Dự án</a>
         <a href="news.html">Tin Tức</a>
-        <a href="#about">Giới thiệu</a>
-        <a href="contact.html">Liên hệ</a>
+        <a href="contact.html">Liên hệ hợp tác</a>
       </nav>
 
       <div class="header-actions">
@@ -47,10 +49,7 @@
         <a class="icon-button" href="tel:0988458783" aria-label="Gọi hotline">
           <i data-lucide="phone" aria-hidden="true"></i>
         </a>
-        <label class="top-search" for="headerSearchInput">
-          <i data-lucide="search" aria-hidden="true"></i>
-          <input id="headerSearchInput" type="search" placeholder="Tìm kiếm..." autocomplete="off" />
-        </label>
+      </div>
       </div>
     </header>
 
@@ -98,11 +97,6 @@
             <i data-lucide="search" aria-hidden="true"></i>
             Tìm kiếm
           </button>
-
-          <a class="quick-contact" href="contact.html">
-            <i data-lucide="handshake" aria-hidden="true"></i>
-            Liên hệ hợp tác
-          </a>
         </div>
 
         <div class="hot-services-panel">
@@ -142,7 +136,7 @@
       <div>
         <h3>Liên hệ</h3>
         <ul>
-          <li><i data-lucide="map-pin" aria-hidden="true"></i>Vinhomes Ocean Park 2-3</li>
+          <li><i data-lucide="map-pin" aria-hidden="true"></i>Timecity - Hà Nội</li>
           <li><i data-lucide="phone" aria-hidden="true"></i>Hotline: 0988 458 783</li>
           <li>
             <i data-lucide="mail" aria-hidden="true"></i>

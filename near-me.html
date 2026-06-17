@@ -18,26 +18,28 @@
     />
     <link rel="stylesheet" href="styles.css" />
     <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script defer src="header-menu.js"></script>
     <script defer src="site-data.js"></script>
     <script defer src="near-me-page.js"></script>
+    <script defer src="theme-select.js"></script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="index.html" aria-label="Cẩm Nang Masterise">
         <span class="brand-mark">CM</span>
-        <span>
-          <strong>Cẩm Nang Masterise</strong>
-          <small>Nhà tôi ở Masterise</small>
-        </span>
       </a>
 
+      <button class="menu-toggle" type="button" data-menu-toggle aria-expanded="false" aria-controls="siteMenu" aria-label="Mở menu">
+        <i data-lucide="menu" aria-hidden="true"></i>
+      </button>
+
+      <div class="header-menu" id="siteMenu">
       <nav class="main-nav" aria-label="Điều hướng chính">
         <a href="near-me.html">Gần bạn</a>
         <a href="stores.html">Gian hàng</a>
         <a href="projects.html">Dự án</a>
         <a href="news.html">Tin Tức</a>
-        <a href="index.html#about">Giới thiệu</a>
-        <a href="contact.html">Liên hệ</a>
+        <a href="contact.html">Liên hệ hợp tác</a>
       </nav>
 
       <div class="header-actions">
@@ -47,6 +49,7 @@
         <a class="icon-button" href="tel:0988458783" aria-label="Gọi hotline">
           <i data-lucide="phone" aria-hidden="true"></i>
         </a>
+      </div>
       </div>
     </header>
 
@@ -60,7 +63,7 @@
       <section class="near-hero" aria-labelledby="nearTitle">
         <div>
           <p class="eyebrow">Gần bạn</p>
-          <h1 id="nearTitle">Dịch vụ quanh vị trí của bạn</h1>
+          <h1 id="nearTitle">Dịch vụ gần bạn</h1>
           <p>
             Trang sẽ tự xin quyền định vị để tìm dự án Masterise gần bạn nhất, sau đó gợi ý các
             gian hàng và dịch vụ trong phạm vi phù hợp. Vị trí chỉ được xử lý trên thiết bị của bạn.

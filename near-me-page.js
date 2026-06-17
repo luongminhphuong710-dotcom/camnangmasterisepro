@@ -123,6 +123,7 @@ function renderNearStores() {
   }
 
   els.grid.innerHTML = items.map(storeCard).join("");
+  hydrateImages();
   syncIcons();
 }
 
@@ -177,6 +178,9 @@ function storeCard({ store, project, distance }) {
   const nearestBadge = project.id === state.nearestProject?.id ? `<span class="store-tag">Dự án gần nhất</span>` : "";
   return `
     <article class="store-card">
+      <figure class="store-card-media">
+        <img src="${storeImage(store, project)}" alt="${store.name}" loading="lazy" />
+      </figure>
       <div class="store-top">
         <span class="store-icon">
           <i data-lucide="${category.icon}" aria-hidden="true"></i>
@@ -294,6 +298,24 @@ function getProject(projectId) {
 
 function getCategory(categoryId) {
   return storeCategories.find((category) => category.id === categoryId) ?? storeCategories[0];
+}
+
+function storeImage(store, project) {
+  return store.image || project?.image || fallbackImage;
+}
+
+function hydrateImages() {
+  document.querySelectorAll("img").forEach((image) => {
+    image.addEventListener(
+      "error",
+      () => {
+        if (image.src !== fallbackImage) {
+          image.src = fallbackImage;
+        }
+      },
+      { once: true }
+    );
+  });
 }
 
 function normalize(value) {

@@ -16,5 +16,6 @@ screenshot-*.png
 
 # Dependencies if the project is upgraded later
 node_modules/
+.next/
 dist/
 build/

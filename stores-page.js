@@ -230,6 +230,9 @@ function storeCard(store) {
   const project = getProject(store.projectId);
   return `
     <article class="store-card">
+      <figure class="store-card-media">
+        <img src="${storeImage(store, project)}" alt="${store.name}" loading="lazy" />
+      </figure>
       <div class="store-top">
         <span class="store-icon">
           <i data-lucide="${category.icon}" aria-hidden="true"></i>
@@ -258,6 +261,10 @@ function storeCard(store) {
       </div>
     </article>
   `;
+}
+
+function storeImage(store, project) {
+  return store.image || project?.image || fallbackImage;
 }
 
 function categoryButton(category) {

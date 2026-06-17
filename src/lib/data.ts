@@ -1,4 +1,4 @@
-window.CAMNANG_DATA = {
+export const camnangData = {
   fallbackImage:
     "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
   regionMeta: {
@@ -494,4 +494,17 @@ window.CAMNANG_DATA = {
       ],
     },
   ],
-};
+} as const;
+
+export const fallbackImage = camnangData.fallbackImage;
+export const regionMeta = camnangData.regionMeta;
+export const projects = camnangData.projects;
+export const storeCategories = camnangData.storeCategories;
+export const stores = camnangData.stores;
+export const newsItems = camnangData.newsItems;
+
+export type Project = (typeof projects)[number];
+export type Store = (typeof stores)[number];
+export type NewsItem = (typeof newsItems)[number];
+export type RegionId = keyof typeof regionMeta;
+export type StoreCategoryId = (typeof storeCategories)[number]["id"];

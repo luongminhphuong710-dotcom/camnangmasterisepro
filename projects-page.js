@@ -147,11 +147,9 @@ function projectCard(project) {
         </div>
         <div class="project-actions">
           <a class="primary-action" href="project.html?id=${project.id}">
-            <i data-lucide="info" aria-hidden="true"></i>
             Thông tin
           </a>
           <a class="secondary-action" href="stores.html?project=${project.id}">
-            <i data-lucide="store" aria-hidden="true"></i>
             Gian hàng
           </a>
         </div>

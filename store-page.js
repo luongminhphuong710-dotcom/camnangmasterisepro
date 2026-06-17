@@ -202,7 +202,7 @@ function reviewList(reviews) {
 
 function buildGallery() {
   const categoryImages = categoryGalleries[store.category] ?? categoryGalleries.service;
-  return [project?.image ?? fallbackImage, ...categoryImages];
+  return [store.image || project?.image || fallbackImage, ...categoryImages];
 }
 
 function introText(categoryLabel) {
