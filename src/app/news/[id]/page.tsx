@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Store, Info } from "lucide-react";
+import Image from "next/image";
 import { NewsCard } from "@/components/NewsCard";
 import { newsItems } from "@/lib/data";
-import { getProject, regionLabel } from "@/lib/helpers";
+import { regionLabel } from "@/lib/helpers";
 
 type ArticlePageProps = {
   params: Promise<{ id: string }>;
@@ -34,7 +33,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     );
   }
 
-  const project = getProject(article.projectId);
   const related = newsItems
     .filter((item) => item.id !== article.id && (item.region === article.region || item.projectId === article.projectId))
     .slice(0, 3);
@@ -43,7 +41,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     <main className="detail-shell grid gap-8">
       <article className="detail-hero">
         <figure>
-          <img src={article.image} alt={article.title} />
+          <Image src={article.image} alt={article.title} fill sizes="(min-width: 768px) 45vw, 100vw" />
         </figure>
         <div className="grid content-center gap-5">
           <p className="eyebrow">
@@ -51,18 +49,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </p>
           <h1 className="h1">{article.title}</h1>
           <p className="body-text">{article.excerpt}</p>
-          {project ? (
-            <div className="action-row max-w-xl">
-              <Link className="primary-button" href={`/projects/${project.id}`}>
-                <Info size={17} aria-hidden />
-                Thông tin dự án
-              </Link>
-              <Link className="secondary-button" href={`/stores?project=${project.id}`}>
-                <Store size={17} aria-hidden />
-                Gian hàng dự án
-              </Link>
-            </div>
-          ) : null}
         </div>
       </article>
 
@@ -74,10 +60,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </small>
           ))}
         </div>
-        <p className="body-text">
-          {article.excerpt} Nội dung chi tiết có thể được cập nhật thêm trong CMS sau này, bao gồm thông báo, hướng dẫn,
-          hình ảnh và các mốc thời gian liên quan tới cư dân.
-        </p>
+        <div className="grid gap-4">
+          {article.content.map((paragraph) => (
+            <p className="body-text" key={paragraph}>
+              {paragraph}
+            </p>
+          ))}
+        </div>
       </section>
 
       <section>

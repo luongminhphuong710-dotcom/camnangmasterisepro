@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ExternalLink, Info, Store } from "lucide-react";
 import { NewsCard } from "@/components/NewsCard";
 import { StoreCard } from "@/components/StoreCard";
@@ -42,7 +43,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
     <main className="detail-shell">
       <section className="detail-hero">
         <figure>
-          <img src={project.image} alt={project.name} />
+          <Image src={project.image} alt={project.name} fill sizes="(min-width: 768px) 45vw, 100vw" />
         </figure>
         <div className="grid content-center gap-5">
           <p className="eyebrow">Thông tin dự án</p>

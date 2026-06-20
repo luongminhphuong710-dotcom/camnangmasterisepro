@@ -3,12 +3,12 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { StoresClient } from "@/app/stores/StoresClient";
 
 type StoresPageProps = {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ category?: string; project?: string }>;
 };
 
 export const metadata = {
   title: "Gian hàng",
-  description: "Tìm kiếm gian hàng Masterise theo miền, tỉnh, dự án và loại dịch vụ.",
+  description: "Tìm kiếm gian hàng Masterise theo dự án và loại dịch vụ.",
 };
 
 export default async function StoresPage({ searchParams }: StoresPageProps) {
@@ -20,10 +20,10 @@ export default async function StoresPage({ searchParams }: StoresPageProps) {
         centered
         eyebrow="Gian hàng"
         title="Gian hàng và dịch vụ"
-        description="Chọn miền, tỉnh, dự án hoặc loại dịch vụ để xem đúng danh sách bạn cần."
+        description="Chọn dự án hoặc loại dịch vụ để xem đúng danh sách bạn cần."
       />
       <Suspense fallback={<div className="rounded-lg bg-white p-6">Đang tải gian hàng...</div>}>
-        <StoresClient initialProjectId={params.project} />
+        <StoresClient initialCategory={params.category} initialProjectId={params.project} />
       </Suspense>
     </main>
   );

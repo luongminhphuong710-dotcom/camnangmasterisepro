@@ -20,7 +20,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "Inter", "ui-sans-serif", "system-ui"],
+        sans: ["var(--font-be-vietnam-pro)", "Be Vietnam Pro", "ui-sans-serif", "system-ui"],
       },
       boxShadow: {
         masterise: "0 18px 44px rgba(33, 27, 22, 0.12)",

@@ -8,6 +8,7 @@ Website đã được chuẩn bị để chạy bằng stack mới:
 - Tailwind CSS 3
 - ESLint
 - Lucide React Icons
+- Vercel Route Handlers cho CMS
 
 ## Chạy local
 
@@ -28,8 +29,18 @@ npm run build
 ## Cấu trúc chính
 
 - `src/app`: App Router của Next.js.
+- `src/app/admin`: CMS quản trị nội dung.
+- `src/app/api/cms`: API đăng nhập, đọc dữ liệu và lưu dữ liệu qua GitHub.
 - `src/components`: Header, Footer, card dự án, card gian hàng, dropdown theme.
-- `src/lib/data.ts`: dữ liệu dự án, gian hàng, tin tức chuyển từ bản static cũ.
+- `src/lib/data.ts`: nguồn dữ liệu chính cho dự án, gian hàng, danh mục và tin tức.
 - `src/app/globals.css`: Tailwind CSS và theme Masterise.
 
-Các file HTML/CSS/JS cũ vẫn được giữ lại trong repo để đối chiếu trong giai đoạn chuyển nền.
+## CMS
+
+CMS chạy tại:
+
+```bash
+http://localhost:3000/admin
+```
+
+Khi deploy lên Vercel, cần cấu hình các biến môi trường trong `.env.example`. Biến `CMS_DATA_PATH` đang trỏ về `src/lib/data.ts`, đây là nguồn dữ liệu chính của bản Next.js.

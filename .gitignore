@@ -9,6 +9,7 @@ Thumbs.db
 # Logs and temporary files
 *.log
 *.tmp
+*.tsbuildinfo
 screenshot-*.png
 .env
 .env.local

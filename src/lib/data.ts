@@ -506,5 +506,3 @@ export const newsItems = camnangData.newsItems;
 export type Project = (typeof projects)[number];
 export type Store = (typeof stores)[number];
 export type NewsItem = (typeof newsItems)[number];
-export type RegionId = keyof typeof regionMeta;
-export type StoreCategoryId = (typeof storeCategories)[number]["id"];

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Copyright, Facebook, Mail, MapPin, Music2, Phone } from "lucide-react";
+import { ChevronRight, Copyright, Globe2, Mail, MapPin, Music2, Phone } from "lucide-react";
 
 export function Footer() {
   return (
@@ -42,7 +42,7 @@ export function Footer() {
         <h3>Theo dõi</h3>
         <ul>
           <li className="flex items-center gap-2">
-            <Facebook size={17} aria-hidden />
+            <Globe2 size={17} aria-hidden />
             Page: Cẩm Nang Masterise
           </li>
           <li className="flex items-center gap-2">

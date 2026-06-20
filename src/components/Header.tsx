@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, Phone, UserRound, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
@@ -46,15 +46,6 @@ export function Header() {
             </Link>
           ))}
         </nav>
-
-        <div className="header-actions">
-          <Link className="icon-button" href="/projects" aria-label="Danh sách dự án">
-            <UserRound size={20} aria-hidden />
-          </Link>
-          <a className="icon-button" href="tel:0988458783" aria-label="Gọi hotline">
-            <Phone size={20} aria-hidden />
-          </a>
-        </div>
       </div>
     </header>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { Navigation, Search, SlidersHorizontal, Target } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import { ThemeSelect } from "@/components/ThemeSelect";
@@ -72,9 +73,9 @@ export default function NearMePage() {
               <Navigation size={17} aria-hidden />
               Bật định vị
             </button>
-            <a className="secondary-button" href="/stores">
+            <Link className="secondary-button" href="/stores">
               Xem tất cả
-            </a>
+            </Link>
           </div>
         </div>
         <aside className="rounded-lg bg-masterise-soft p-6">

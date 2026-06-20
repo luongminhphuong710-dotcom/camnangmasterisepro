@@ -14,7 +14,7 @@ body {
   margin: 0;
   background: #f7f3ed;
   color: #211b16;
-  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-be-vietnam-pro), "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
 }
 
 img {
@@ -45,6 +45,14 @@ a {
 
   .section-heading.center {
     @apply mx-auto text-center;
+  }
+
+  .section-heading.with-action {
+    @apply flex max-w-none flex-wrap items-end justify-between gap-4;
+  }
+
+  .section-heading-action {
+    @apply shrink-0;
   }
 
   .eyebrow {
@@ -91,10 +99,6 @@ a {
     @apply whitespace-nowrap hover:text-[#f6ddb3] focus:text-[#f6ddb3] focus:outline-none;
   }
 
-  .header-actions {
-    @apply flex items-center gap-2;
-  }
-
   .icon-button {
     @apply grid h-11 w-11 place-items-center rounded-full bg-white text-masterise-primary transition hover:bg-[#f6ddb3] hover:text-masterise-dark focus:bg-[#f6ddb3] focus:outline-none;
   }
@@ -104,7 +108,7 @@ a {
   }
 
   .hero-banner {
-    @apply h-[280px] overflow-hidden bg-masterise-soft md:h-[420px];
+    @apply relative h-[280px] overflow-hidden bg-masterise-soft md:h-[420px];
   }
 
   .hero-banner img {
@@ -112,16 +116,25 @@ a {
   }
 
   .filter-card {
-    width: min(calc(100vw - 28px), 1420px);
+    width: calc(100vw - 28px);
+    max-width: 1420px;
     margin-inline: auto;
-    @apply -mt-8 grid grid-cols-1 overflow-visible rounded-lg border border-masterise-line bg-white shadow-masterise md:grid-cols-2;
+    @apply relative z-10 -mt-8 grid grid-cols-1 overflow-visible rounded-lg border border-masterise-line bg-white shadow-masterise md:grid-cols-2;
+  }
+
+  @media (min-width: 1024px) {
+    .filter-card {
+      grid-template-columns:
+        minmax(150px, 0.9fr) minmax(210px, 1fr)
+        minmax(260px, 1.6fr) 220px;
+    }
   }
 
   @media (min-width: 1280px) {
     .filter-card {
       grid-template-columns:
-        minmax(160px, 0.72fr) minmax(230px, 1fr) minmax(190px, 0.8fr)
-        minmax(320px, 1.45fr) auto;
+        minmax(180px, 0.9fr) minmax(240px, 1fr)
+        minmax(340px, 1.6fr) 220px;
     }
   }
 
@@ -141,6 +154,14 @@ a {
     @apply flex min-h-11 w-full items-center justify-between gap-3 bg-transparent text-left text-sm font-medium text-masterise-ink outline-none;
   }
 
+  .theme-select-button span {
+    @apply min-w-0 truncate;
+  }
+
+  .theme-select-button svg {
+    @apply shrink-0;
+  }
+
   .theme-select-menu {
     @apply absolute left-[-16px] top-[calc(100%_+_10px)] z-50 hidden max-h-72 w-[max(100%,220px)] overflow-auto rounded-lg border border-masterise-line bg-white p-1.5 shadow-masterise;
   }
@@ -157,16 +178,58 @@ a {
     @apply bg-masterise-primary text-white hover:bg-masterise-primary hover:text-white;
   }
 
+  .store-project-select {
+    @apply relative min-w-0 flex-1;
+  }
+
+  .store-project-select-button {
+    @apply flex min-h-11 w-full items-center justify-between gap-3 bg-transparent text-left text-sm font-semibold text-masterise-ink outline-none;
+  }
+
+  .store-project-select-button span {
+    @apply min-w-0 truncate;
+  }
+
+  .store-project-select-menu {
+    @apply mt-2 hidden max-h-80 w-full overflow-auto rounded-lg border border-masterise-line bg-white p-1.5 shadow-masterise;
+  }
+
+  .store-project-select-menu.open {
+    @apply grid gap-1;
+  }
+
+  .store-project-select-option {
+    @apply flex min-h-10 items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-masterise-ink hover:bg-masterise-soft hover:text-masterise-dark;
+  }
+
+  .store-project-select-option.active {
+    @apply bg-masterise-primary text-white hover:bg-masterise-primary hover:text-white;
+  }
+
   .primary-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-masterise-primary bg-masterise-primary px-5 text-sm font-semibold text-white transition hover:bg-masterise-dark focus:bg-masterise-dark focus:outline-none;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 overflow-visible whitespace-nowrap rounded-full border border-masterise-primary bg-masterise-primary px-5 text-sm font-semibold leading-none text-white transition hover:bg-masterise-dark focus:bg-masterise-dark focus:outline-none;
   }
 
   .secondary-button {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-masterise-primary bg-white px-5 text-sm font-semibold text-masterise-primary transition hover:bg-masterise-dark hover:text-white focus:bg-masterise-dark focus:text-white focus:outline-none;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 overflow-visible whitespace-nowrap rounded-full border border-masterise-primary bg-white px-5 text-sm font-semibold leading-none text-masterise-primary transition hover:bg-masterise-dark hover:text-white focus:bg-masterise-dark focus:text-white focus:outline-none;
+  }
+
+  .primary-button svg,
+  .secondary-button svg {
+    @apply shrink-0;
+  }
+
+  .primary-button:disabled,
+  .secondary-button:disabled {
+    @apply cursor-not-allowed opacity-45 hover:bg-white hover:text-masterise-primary;
   }
 
   .filter-button {
-    @apply inline-flex min-h-[60px] items-center justify-center gap-2 bg-masterise-primary px-6 text-sm font-bold text-white transition hover:bg-masterise-dark;
+    @apply inline-flex min-h-[60px] w-full min-w-0 items-center justify-center gap-2 whitespace-nowrap bg-masterise-primary px-6 text-sm font-bold text-white transition hover:bg-masterise-dark;
+  }
+
+  .filter-button svg {
+    @apply shrink-0;
   }
 
   .project-grid {
@@ -182,7 +245,7 @@ a {
   .project-card figure,
   .store-card figure,
   .news-card figure {
-    @apply aspect-video overflow-hidden bg-masterise-soft;
+    @apply relative aspect-video overflow-hidden bg-masterise-soft;
   }
 
   .project-card img,
@@ -197,8 +260,53 @@ a {
     @apply scale-[1.035];
   }
 
+  .store-card {
+    @apply cursor-pointer transition hover:shadow-masterise;
+  }
+
   .project-body {
-    @apply grid justify-items-center gap-3 p-5 text-center;
+    @apply flex flex-1 flex-col items-center gap-3 p-5 text-center;
+  }
+
+  .store-card-title {
+    display: -webkit-box;
+    min-height: 50px;
+    overflow: hidden;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .store-card-note {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .store-detail-section-title {
+    @apply mb-4 text-2xl font-extrabold leading-[1.25] tracking-normal text-masterise-ink;
+  }
+
+  .voucher-ticket {
+    @apply relative overflow-hidden rounded-lg border border-dashed border-masterise-line bg-white p-4 shadow-sm;
+  }
+
+  .voucher-ticket::before,
+  .voucher-ticket::after {
+    content: "";
+    @apply absolute top-1/2 h-5 w-5 -translate-y-1/2 rounded-full border border-masterise-line bg-white;
+  }
+
+  .voucher-ticket::before {
+    @apply -left-3;
+  }
+
+  .voucher-ticket::after {
+    @apply -right-3;
   }
 
   .tag {
@@ -211,7 +319,7 @@ a {
 
   .action-row .primary-button,
   .action-row .secondary-button {
-    @apply min-w-0 flex-1 px-3 text-xs sm:text-sm;
+    @apply h-11 min-w-0 flex-1 px-3 text-xs sm:text-sm;
   }
 
   .store-grid {
@@ -250,7 +358,7 @@ a {
   }
 
   .detail-hero figure {
-    @apply aspect-video overflow-hidden rounded-lg bg-masterise-soft;
+    @apply relative aspect-video overflow-hidden rounded-lg bg-masterise-soft;
   }
 
   .detail-hero img {
@@ -271,7 +379,7 @@ a {
 
   @media (max-width: 1100px) {
     .topbar {
-      @apply grid-cols-[auto_auto] justify-between;
+      @apply relative grid-cols-[auto_auto] justify-between;
     }
 
     .menu-toggle {
@@ -279,7 +387,7 @@ a {
     }
 
     .header-menu {
-      @apply col-span-2 hidden w-full justify-items-center gap-4 py-2;
+      @apply absolute right-4 top-[calc(100%_+_10px)] hidden w-[min(360px,calc(100vw-28px))] rounded-lg border border-masterise-line bg-white p-2 text-masterise-ink shadow-masterise;
     }
 
     .header-menu.open {
@@ -287,22 +395,30 @@ a {
     }
 
     .main-nav {
-      @apply justify-center;
+      @apply grid w-full gap-1 text-sm;
+    }
+
+    .main-nav a {
+      @apply rounded-md px-4 py-3 text-masterise-ink hover:bg-masterise-soft hover:text-masterise-dark focus:bg-masterise-soft focus:text-masterise-dark;
+    }
+
+    .main-nav a[aria-current="page"] {
+      @apply bg-masterise-soft text-masterise-primary;
     }
 
   }
 
   @media (max-width: 720px) {
     .topbar {
-      @apply static;
+      @apply relative;
+    }
+
+    .header-menu {
+      @apply left-3 right-3 w-auto;
     }
 
     .main-nav {
-      @apply grid grid-cols-2 justify-center gap-x-5 gap-y-3 text-[0.8125rem];
-    }
-
-    .header-actions {
-      @apply w-full flex-wrap justify-center;
+      @apply grid-cols-1 text-sm;
     }
 
   }

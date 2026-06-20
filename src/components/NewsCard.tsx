@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { type NewsItem } from "@/lib/data";
 import { getProject, regionLabel } from "@/lib/helpers";
 
@@ -12,7 +13,7 @@ export function NewsCard({ item }: NewsCardProps) {
   return (
     <Link className="news-card grid" href={`/news/${item.id}`}>
       <figure>
-        <img src={item.image} alt={item.title} loading="lazy" />
+        <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw" />
       </figure>
       <div className="grid gap-3 p-5">
         <span className="eyebrow mb-0">
