@@ -145,8 +145,8 @@ export default function HomePage() {
             </Link>
           }
         />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {newsItems.slice(0, 6).map((item) => (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {newsItems.slice(0, 8).map((item) => (
             <NewsCard key={item.id} item={item} />
           ))}
         </div>

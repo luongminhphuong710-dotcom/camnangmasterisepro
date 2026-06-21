@@ -135,9 +135,11 @@ const sectionConfigs: Record<SectionKey, SectionConfig> = {
       hours: "08:00 - 20:00",
       phone: "0988 458 783",
       rating: 4.5,
+      reviewCount: 0,
       note: "",
     }),
     fields: (data) => [
+      { key: "reviewCount", label: "Số lượt đánh giá", type: "number", min: 0, step: 1 },
       { key: "id", label: "ID đường dẫn", type: "text", helper: "Dùng cho link chi tiết gian hàng." },
       { key: "name", label: "Tên gian hàng", type: "text" },
       { key: "projectId", label: "Dự án", type: "select", options: projectOptions(data) },

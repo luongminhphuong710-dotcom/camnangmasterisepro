@@ -107,9 +107,9 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
       <section className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
         <div className="grid gap-6">
           <section className="order-2 rounded-lg border border-masterise-line bg-white p-5 shadow-masterise lg:hidden">
-            <p className="eyebrow">
+            <span className="tag mb-2">
               {category.label}
-            </p>
+            </span>
             <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
             <p className="body-text mt-3 text-sm">{store.note}</p>
 
@@ -128,7 +128,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               </span>
             </div>
 
-            <div className="mt-5 border-t border-masterise-line" aria-hidden />
             <div className="mt-5 grid grid-cols-2 gap-3">
               <a className="primary-button" href={`tel:${cleanPhone}`}>
                 <Phone size={17} aria-hidden />
@@ -249,9 +248,9 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
         <aside className="hidden h-fit gap-5 lg:sticky lg:top-[96px] lg:grid">
           <section className="rounded-lg border border-masterise-line bg-white p-5 shadow-masterise">
-            <p className="eyebrow">
+            <span className="tag mb-2">
               {category.label}
-            </p>
+            </span>
             <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
             <p className="body-text mt-3 text-sm">{store.note}</p>
 
@@ -270,7 +269,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               </span>
             </div>
 
-            <div className="mt-5 border-t border-masterise-line" aria-hidden />
             <div className="mt-5 grid grid-cols-2 gap-3">
               <a className="primary-button" href={`tel:${cleanPhone}`}>
                 <Phone size={17} aria-hidden />

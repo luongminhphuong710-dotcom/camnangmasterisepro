@@ -11,11 +11,11 @@ export function NewsCard({ item }: NewsCardProps) {
   const project = getProject(item.projectId);
 
   return (
-    <Link className="news-card grid" href={`/news/${item.id}`}>
+    <Link className="news-card grid h-full content-start" href={`/news/${item.id}`}>
       <figure>
-        <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw" />
+        <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
       </figure>
-      <div className="grid gap-3 p-5">
+      <div className="grid content-start gap-3 p-5">
         <span className="eyebrow mb-0">
           {item.category} / {project ? project.name : regionLabel(item.region)}
         </span>

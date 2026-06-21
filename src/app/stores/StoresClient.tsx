@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, ChevronDown, Search, X } from "lucide-react";
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import { projects, storeCategories, stores } from "@/lib/data";
@@ -19,6 +19,7 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
   const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
   const [category, setCategory] = useState(hasInitialCategory ? initialCategory : "all");
   const [query, setQuery] = useState("");
+  const [projectQuery, setProjectQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isProjectOpen, setIsProjectOpen] = useState(false);
 
@@ -27,6 +28,12 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
     [],
   );
   const currentProjectOption = projectOptions.find((option) => option.value === projectId) ?? projectOptions[0];
+  const filteredProjectOptions = useMemo(() => {
+    const token = normalize(projectQuery);
+    if (!token) return projectOptions;
+
+    return projectOptions.filter((option) => normalize(option.label).includes(token));
+  }, [projectOptions, projectQuery]);
 
   const items = useMemo(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
@@ -81,6 +88,11 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
     setPage(1);
   }
 
+  function closeProjectDialog() {
+    setIsProjectOpen(false);
+    setProjectQuery("");
+  }
+
   return (
     <>
       <div className="mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2">
@@ -124,7 +136,7 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
           role="dialog"
           aria-modal="true"
           aria-label="Chọn dự án"
-          onClick={() => setIsProjectOpen(false)}
+          onClick={closeProjectDialog}
         >
           <div
             className="grid max-h-[82vh] w-full max-w-2xl gap-4 overflow-hidden rounded-lg bg-white p-4 shadow-masterise"
@@ -139,14 +151,30 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
                 className="grid h-10 w-10 place-items-center rounded-full bg-masterise-surface text-masterise-primary transition hover:bg-masterise-primary hover:text-white focus:bg-masterise-primary focus:text-white focus:outline-none"
                 type="button"
                 aria-label="Đóng chọn dự án"
-                onClick={() => setIsProjectOpen(false)}
+                onClick={closeProjectDialog}
               >
                 <X size={20} aria-hidden />
               </button>
             </div>
 
+            <label className="filter-field min-h-12 rounded-lg border border-masterise-line" htmlFor="projectSearchInput">
+              <Search size={18} aria-hidden className="text-masterise-primary" />
+              <input
+                id="projectSearchInput"
+                className="filter-input"
+                type="search"
+                aria-label="Tìm tên dự án"
+                autoComplete="off"
+                autoFocus
+                placeholder="Tìm tên dự án..."
+                value={projectQuery}
+                onChange={(event) => setProjectQuery(event.target.value)}
+              />
+            </label>
+
             <div className="grid max-h-[64vh] gap-2 overflow-auto pr-1" role="listbox">
-              {projectOptions.map((option) => (
+              {filteredProjectOptions.length ? (
+                filteredProjectOptions.map((option) => (
                 <button
                   key={option.value}
                   className={`flex min-h-12 items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
@@ -159,13 +187,18 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
                   aria-selected={option.value === projectId}
                   onClick={() => {
                     updateProject(option.value);
-                    setIsProjectOpen(false);
+                    closeProjectDialog();
                   }}
                 >
                   <Building2 size={17} aria-hidden className="shrink-0" />
                   <span>{option.label}</span>
                 </button>
-              ))}
+                ))
+              ) : (
+                <p className="rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
+                  Không tìm thấy dự án phù hợp.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -209,12 +242,13 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
       {pageCount > 1 ? (
         <nav className="mt-8 flex flex-wrap items-center justify-center gap-2" aria-label="Phân trang gian hàng">
           <button
-            className="secondary-button min-w-24"
+            className="secondary-button h-11 w-11 rounded-full px-0"
             type="button"
+            aria-label="Trang trước"
             disabled={currentPage === 1}
             onClick={() => setPage((value) => Math.max(1, value - 1))}
           >
-            Back
+            <ChevronLeft size={18} aria-hidden />
           </button>
           {Array.from({ length: pageCount }, (_, index) => index + 1).map((item) => (
             <button
@@ -232,12 +266,13 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
             </button>
           ))}
           <button
-            className="secondary-button min-w-24"
+            className="secondary-button h-11 w-11 rounded-full px-0"
             type="button"
+            aria-label="Trang sau"
             disabled={currentPage === pageCount}
             onClick={() => setPage((value) => Math.min(pageCount, value + 1))}
           >
-            Next
+            <ChevronRight size={18} aria-hidden />
           </button>
         </nav>
       ) : null}

@@ -46,16 +46,12 @@ export function StoreCard({ store, project, distance }: StoreCardProps) {
               </span>
             ) : null}
             <span>
-              <MapPin size={14} aria-hidden />
-              {store.floor}
-            </span>
-            <span>
               <Clock3 size={14} aria-hidden />
               {store.hours}
             </span>
             <strong>
               <Star size={14} aria-hidden />
-              {store.rating.toFixed(1)}/5
+              {store.rating.toFixed(1)}/5 ({store.reviewCount})
             </strong>
           </div>
           <div className="action-row relative z-20">
