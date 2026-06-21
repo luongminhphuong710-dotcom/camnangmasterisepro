@@ -1,51 +1,45 @@
-import { Mail, Phone, Send } from "lucide-react";
+import { ExternalLink, Phone } from "lucide-react";
 
 export const metadata = {
-  title: "Liên hệ hợp tác",
-  description: "Liên hệ hợp tác gian hàng, truyền thông và dịch vụ cư dân cùng Cẩm Nang Masterise.",
+  title: "Liên hệ",
+  description: "Gọi hotline hoặc theo dõi Facebook Cẩm Nang Masterise để được hỗ trợ nhanh chóng.",
 };
 
 export default function ContactPage() {
   return (
-    <main className="detail-shell">
-      <section className="detail-hero">
-        <div className="grid content-center gap-5">
-          <p className="eyebrow">Liên hệ hợp tác</p>
-          <h1 className="h1">Kết nối gian hàng và dịch vụ cư dân</h1>
+    <main className="contact-shell">
+      <section className="contact-section">
+        <div className="contact-intro">
+          <p className="eyebrow">Liên hệ</p>
+          <h1 className="h1">Cần hỗ trợ? Kết nối ngay với Cẩm Nang Masterise</h1>
           <p className="body-text">
-            Gửi thông tin hợp tác để Cẩm Nang Masterise hỗ trợ hiển thị gian hàng, dịch vụ hoặc nội dung truyền thông
-            phù hợp với từng dự án.
+            Để được tư vấn hoặc cập nhật thông tin mới nhất, vui lòng gọi hotline hoặc truy cập Facebook chính thức của
+            Cẩm Nang Masterise.
           </p>
-          <div className="action-row max-w-xl">
-            <a
-              className="primary-button"
-              href="mailto:luongminhphuong710@gmail.com?subject=Li%C3%AAn%20h%E1%BB%87%20h%E1%BB%A3p%20t%C3%A1c%20C%E1%BA%A9m%20Nang%20Masterise"
-            >
-              <Mail size={17} aria-hidden />
-              Gửi email
-            </a>
-            <a className="secondary-button" href="tel:0988458783">
+        </div>
+
+        <div className="contact-methods">
+          <p className="text-sm font-semibold uppercase tracking-[0.02em] text-masterise-primary">Kênh liên hệ</p>
+          <h2 className="h3">Chọn cách thuận tiện nhất cho bạn</h2>
+          <p className="body-text">
+            Hotline hỗ trợ nhanh trong giờ làm việc. Facebook là nơi cập nhật thông tin dự án, tiện ích và dịch vụ cư dân.
+          </p>
+          <div className="contact-buttons">
+            <a className="secondary-button w-full" href="tel:0988458783">
               <Phone size={17} aria-hidden />
               Gọi hotline
             </a>
+            <a
+              className="primary-button w-full"
+              href="https://www.facebook.com/camnangmasterisehomes/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <ExternalLink size={17} aria-hidden />
+              Vào Facebook
+            </a>
           </div>
         </div>
-        <form className="grid gap-3 rounded-lg bg-masterise-soft p-5">
-          <input className="rounded-lg border border-masterise-line px-4 py-3 outline-masterise-primary" placeholder="Họ và tên" />
-          <input className="rounded-lg border border-masterise-line px-4 py-3 outline-masterise-primary" placeholder="Số điện thoại" />
-          <input className="rounded-lg border border-masterise-line px-4 py-3 outline-masterise-primary" placeholder="Email" />
-          <select className="rounded-lg border border-masterise-line px-4 py-3 outline-masterise-primary" defaultValue="Gian hàng cư dân">
-            <option>Gian hàng cư dân</option>
-            <option>Truyền thông dự án</option>
-            <option>Dịch vụ cư dân</option>
-            <option>Liên hệ khác</option>
-          </select>
-          <textarea className="min-h-28 rounded-lg border border-masterise-line px-4 py-3 outline-masterise-primary" placeholder="Nội dung cần hỗ trợ" />
-          <button className="primary-button justify-self-start" type="button">
-            <Send size={17} aria-hidden />
-            Gửi thông tin
-          </button>
-        </form>
       </section>
     </main>
   );

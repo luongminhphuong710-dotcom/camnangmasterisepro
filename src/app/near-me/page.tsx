@@ -1,12 +1,12 @@
 "use client";
 
-import { Navigation, Search, SlidersHorizontal, Target } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Search, SlidersHorizontal, Store as StoreIcon, Target } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import { ThemeSelect } from "@/components/ThemeSelect";
 import { storeCategories, stores } from "@/lib/data";
-import { distanceInKm, getProject, normalize, projectCoordinates } from "@/lib/helpers";
+import { distanceInKm, getCategory, getProject, normalize, projectCoordinates } from "@/lib/helpers";
 
 const radiusOptions = [
   { value: "3", label: "Trong 3 km" },
@@ -16,16 +16,29 @@ const radiusOptions = [
 ];
 
 export default function NearMePage() {
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [location] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState("10");
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
-  const [message, setMessage] = useState("Bật định vị để sắp xếp dịch vụ theo khoảng cách.");
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const categoryOptions = storeCategories.map((item) => ({ value: item.id, label: item.label }));
 
-  const items = useMemo(() => {
+  const storeSuggestions = useMemo(() => {
     const text = normalize(query);
+    if (!text) return [];
+
+    return stores
+      .filter((store) => {
+        const project = getProject(store.projectId);
+        const categoryLabel = getCategory(store.category).label;
+        return normalize([store.name, store.note, store.floor, categoryLabel, project?.name, project?.city].join(" ")).includes(text);
+      })
+      .slice(0, 7);
+  }, [query]);
+
+  const items = useMemo(() => {
     return stores
       .map((store) => {
         const project = getProject(store.projectId);
@@ -37,60 +50,28 @@ export default function NearMePage() {
         if (!project) return false;
         const matchesRadius = !location || distance === null || distance <= Number(radius);
         const matchesCategory = category === "all" || store.category === category;
-        const matchesQuery =
-          !text || normalize([store.name, store.note, store.floor, project.name, project.city].join(" ")).includes(text);
-        return matchesRadius && matchesCategory && matchesQuery;
+        return matchesRadius && matchesCategory;
       })
       .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-  }, [category, location, query, radius]);
+  }, [category, location, radius]);
 
-  function locate() {
-    if (!navigator.geolocation) {
-      setMessage("Trình duyệt chưa hỗ trợ định vị.");
-      return;
+  useEffect(() => {
+    function closeSuggestions(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setIsSuggestionOpen(false);
+      }
     }
 
-    setMessage("Đang lấy vị trí của bạn...");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
-        setMessage("Đã bật định vị. Danh sách đang ưu tiên dịch vụ gần bạn.");
-      },
-      () => setMessage("Không thể lấy vị trí. Danh sách đang hiển thị theo đánh giá nổi bật."),
-      { enableHighAccuracy: true, timeout: 10000 },
-    );
-  }
+    document.addEventListener("click", closeSuggestions);
+    return () => document.removeEventListener("click", closeSuggestions);
+  }, []);
 
   return (
     <main className="detail-shell">
-      <section className="detail-hero mb-8">
-        <div className="grid content-center gap-5">
-          <p className="eyebrow">Gần bạn</p>
-          <h1 className="h1">Dịch vụ gần bạn</h1>
-          <p className="body-text">{message}</p>
-          <div className="action-row max-w-md">
-            <button className="primary-button" type="button" onClick={locate}>
-              <Navigation size={17} aria-hidden />
-              Bật định vị
-            </button>
-            <Link className="secondary-button" href="/stores">
-              Xem tất cả
-            </Link>
-          </div>
-        </div>
-        <aside className="rounded-lg bg-masterise-soft p-6">
-          <Target className="mb-4 text-masterise-primary" size={32} aria-hidden />
-          <strong>Dự án gần nhất</strong>
-          <p className="body-text mt-2 text-sm">
-            Khi có vị trí, hệ thống sẽ dựa trên tọa độ dự án để ưu tiên dịch vụ trong phạm vi bạn chọn.
-          </p>
-        </aside>
-      </section>
-
-      <section className="rounded-lg border border-masterise-line bg-white p-5">
+      <section>
         <div className="section-heading">
           <p className="eyebrow">Danh sách đề xuất</p>
-          <h2 className="h2">Dịch vụ trong phạm vi gần</h2>
+          <h2 className="h2">Dịch vụ gần bạn</h2>
         </div>
         <div className="mb-6 grid gap-3 md:grid-cols-3">
           <div className="filter-field rounded-lg border border-masterise-line">
@@ -101,17 +82,56 @@ export default function NearMePage() {
             <SlidersHorizontal size={19} aria-hidden className="text-masterise-primary" />
             <ThemeSelect label="Chọn loại dịch vụ" value={category} options={categoryOptions} onChange={setCategory} />
           </div>
-          <label className="filter-field rounded-lg border border-masterise-line" htmlFor="nearSearchInput">
+          <div className="filter-field search-suggest-field rounded-lg border border-masterise-line" ref={searchRef}>
             <Search size={19} aria-hidden className="text-masterise-primary" />
             <input
               id="nearSearchInput"
               className="filter-input"
               type="search"
+              role="combobox"
+              aria-label="Tìm dịch vụ gần bạn"
+              autoComplete="off"
+              aria-autocomplete="list"
+              aria-expanded={isSuggestionOpen && storeSuggestions.length > 0}
+              aria-controls="nearSearchSuggestions"
               placeholder="Tìm dịch vụ gần bạn..."
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setIsSuggestionOpen(true);
+              }}
+              onFocus={() => setIsSuggestionOpen(true)}
             />
-          </label>
+            {isSuggestionOpen && storeSuggestions.length > 0 ? (
+              <div className="search-suggestion-menu" id="nearSearchSuggestions" role="listbox">
+                {storeSuggestions.map((store) => {
+                  const project = getProject(store.projectId);
+                  const categoryLabel = getCategory(store.category).label;
+
+                  return (
+                    <Link
+                      key={store.id}
+                      className="search-suggestion-option"
+                      href={`/stores/${store.id}`}
+                      role="option"
+                      aria-selected="false"
+                    >
+                      <span className="search-suggestion-icon">
+                        <StoreIcon size={16} aria-hidden />
+                      </span>
+                      <span>
+                        <strong>{store.name}</strong>
+                        <small>
+                          {categoryLabel}
+                          {project ? ` · ${project.name}` : ""}
+                        </small>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : null}
+          </div>
         </div>
         <div className="store-grid">
           {items.map(({ store, project, distance }) => (

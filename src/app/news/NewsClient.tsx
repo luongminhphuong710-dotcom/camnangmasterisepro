@@ -1,7 +1,8 @@
 "use client";
 
 import { ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { NewsCard } from "@/components/NewsCard";
 import { newsItems } from "@/lib/data";
 import { getProject, normalize } from "@/lib/helpers";
@@ -25,6 +26,8 @@ export function NewsClient() {
   const [sortMode, setSortMode] = useState<SortMode>("newest");
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [page, setPage] = useState(1);
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const categoryOptions = useMemo(() => {
     const categories = Array.from(new Set(newsItems.map((item) => item.category)));
@@ -37,30 +40,29 @@ export function NewsClient() {
   ];
   const currentSortOption = sortOptions.find((item) => item.value === sortMode) ?? sortOptions[0];
 
-  const filteredItems = useMemo(() => {
+  const newsSuggestions = useMemo(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [];
 
+    return newsItems
+      .filter((item) => {
+        const project = getProject(item.projectId);
+        const searchText = normalize(
+          [item.title, item.excerpt, item.category, item.date, item.region, project?.name, project?.city, ...item.hashtags].join(" "),
+        );
+
+        return tokens.every((token) => searchText.includes(token));
+      })
+      .slice(0, 7);
+  }, [query]);
+
+  const filteredItems = useMemo(() => {
     return newsItems.filter((item) => {
-      const project = getProject(item.projectId);
       const matchesCategory = category === "all" || item.category === category;
-      const searchText = normalize(
-        [
-          item.title,
-          item.excerpt,
-          item.category,
-          item.date,
-          item.region,
-          project?.name,
-          project?.city,
-          project?.location,
-          ...item.hashtags,
-        ].join(" "),
-      );
-      const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));
 
-      return matchesCategory && matchesQuery;
+      return matchesCategory;
     });
-  }, [category, query]);
+  }, [category]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {
@@ -77,7 +79,7 @@ export function NewsClient() {
 
   function updateQuery(value: string) {
     setQuery(value);
-    setPage(1);
+    setIsSuggestionOpen(true);
   }
 
   function updateCategory(value: string) {
@@ -91,22 +93,69 @@ export function NewsClient() {
     setPage(1);
   }
 
+  useEffect(() => {
+    function closeSuggestions(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setIsSuggestionOpen(false);
+      }
+    }
+
+    document.addEventListener("click", closeSuggestions);
+    return () => document.removeEventListener("click", closeSuggestions);
+  }, []);
+
   return (
     <>
       <div className="mb-8 grid gap-4">
-        <label className="filter-field max-w-full rounded-lg border border-masterise-line sm:w-1/2 xl:w-1/4" htmlFor="newsSearchInput">
+        <div
+          className="filter-field search-suggest-field max-w-full rounded-lg border border-masterise-line sm:w-1/2 xl:w-1/4"
+          ref={searchRef}
+        >
           <Search size={19} aria-hidden className="text-masterise-primary" />
           <input
             id="newsSearchInput"
             className="filter-input"
             type="search"
+            role="combobox"
             aria-label="Tìm bài viết"
             autoComplete="off"
+            aria-autocomplete="list"
+            aria-expanded={isSuggestionOpen && newsSuggestions.length > 0}
+            aria-controls="newsSearchSuggestions"
             placeholder="Tìm bài viết..."
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
+            onFocus={() => setIsSuggestionOpen(true)}
           />
-        </label>
+          {isSuggestionOpen && newsSuggestions.length > 0 ? (
+            <div className="search-suggestion-menu" id="newsSearchSuggestions" role="listbox">
+              {newsSuggestions.map((item) => {
+                const project = getProject(item.projectId);
+
+                return (
+                  <Link
+                    key={item.id}
+                    className="search-suggestion-option"
+                    href={`/news/${item.id}`}
+                    role="option"
+                    aria-selected="false"
+                  >
+                    <span className="search-suggestion-icon">
+                      <Search size={16} aria-hidden />
+                    </span>
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>
+                        {item.category}
+                        {project ? ` · ${project.name}` : ""}
+                      </small>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="chip-row" aria-label="Lọc bài viết theo chủ đề">

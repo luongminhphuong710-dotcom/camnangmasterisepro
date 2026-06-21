@@ -6,11 +6,9 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/near-me", label: "Gần bạn" },
   { href: "/stores", label: "Gian hàng" },
   { href: "/projects", label: "Dự án" },
   { href: "/news", label: "Tin Tức" },
-  { href: "/contact", label: "Liên hệ hợp tác" },
 ];
 
 export function Header() {
@@ -45,6 +43,14 @@ export function Header() {
               {item.label}
             </Link>
           ))}
+          <Link
+            className="header-cta"
+            href="/contact"
+            aria-current={pathname === "/contact" ? "page" : undefined}
+            onClick={() => setIsOpen(false)}
+          >
+            Đăng gian hàng
+          </Link>
         </nav>
       </div>
     </header>

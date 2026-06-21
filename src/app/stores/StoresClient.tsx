@@ -1,7 +1,8 @@
 "use client";
 
-import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, Store as StoreIcon, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import { projects, storeCategories, stores } from "@/lib/data";
 import { getCategory, getProject, normalize } from "@/lib/helpers";
@@ -22,6 +23,8 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
   const [projectQuery, setProjectQuery] = useState("");
   const [page, setPage] = useState(1);
   const [isProjectOpen, setIsProjectOpen] = useState(false);
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const projectOptions = useMemo(
     () => [{ value: "all", label: "Tất cả dự án" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
@@ -35,36 +38,33 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
     return projectOptions.filter((option) => normalize(option.label).includes(token));
   }, [projectOptions, projectQuery]);
 
-  const items = useMemo(() => {
+  const storeSuggestions = useMemo(() => {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
+    if (!tokens.length) return [];
+
+    return stores
+      .filter((store) => {
+        const project = getProject(store.projectId);
+        const storeCategory = getCategory(store.category);
+        const searchText = normalize(
+          [store.name, store.note, store.floor, store.hours, storeCategory.label, project?.name, project?.city].join(" "),
+        );
+        return tokens.every((token) => searchText.includes(token));
+      })
+      .slice(0, 7);
+  }, [query]);
+
+  const items = useMemo(() => {
     return stores
       .filter((store) => {
         const project = getProject(store.projectId);
         if (!project) return false;
-        const storeCategory = getCategory(store.category);
         const matchesProject = projectId === "all" || project.id === projectId;
         const matchesCategory = category === "all" || store.category === category;
-        const searchText = normalize(
-          [
-            "gian hàng",
-            "dịch vụ",
-            store.name,
-            store.note,
-            store.floor,
-            store.hours,
-            store.category,
-            storeCategory.label,
-            project.name,
-            project.city,
-            project.location,
-            project.segment,
-          ].join(" "),
-        );
-        const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));
-        return matchesProject && matchesCategory && matchesQuery;
+        return matchesProject && matchesCategory;
       })
       .sort((a, b) => b.rating - a.rating);
-  }, [category, projectId, query]);
+  }, [category, projectId]);
 
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -78,20 +78,29 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
   function updateCategory(value: string) {
     setCategory(value);
     setProjectId("all");
-    setQuery("");
     setPage(1);
   }
 
   function updateQuery(value: string) {
     setQuery(value);
-    setCategory("all");
-    setPage(1);
+    setIsSuggestionOpen(true);
   }
 
   function closeProjectDialog() {
     setIsProjectOpen(false);
     setProjectQuery("");
   }
+
+  useEffect(() => {
+    function closeSuggestions(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setIsSuggestionOpen(false);
+      }
+    }
+
+    document.addEventListener("click", closeSuggestions);
+    return () => document.removeEventListener("click", closeSuggestions);
+  }, []);
 
   return (
     <>
@@ -115,19 +124,53 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
             </button>
           </div>
         </div>
-        <label className="filter-field rounded-lg border border-masterise-line" htmlFor="storeSearchInput">
+        <div className="filter-field search-suggest-field rounded-lg border border-masterise-line" ref={searchRef}>
           <Search size={19} aria-hidden className="text-masterise-primary" />
           <input
             id="storeSearchInput"
             className="filter-input"
             type="search"
+            role="combobox"
             aria-label="Tìm gian hàng hoặc dịch vụ"
             autoComplete="off"
+            aria-autocomplete="list"
+            aria-expanded={isSuggestionOpen && storeSuggestions.length > 0}
+            aria-controls="storeSearchSuggestions"
             placeholder="Tìm gian hàng..."
             value={query}
             onChange={(event) => updateQuery(event.target.value)}
+            onFocus={() => setIsSuggestionOpen(true)}
           />
-        </label>
+          {isSuggestionOpen && storeSuggestions.length > 0 ? (
+            <div className="search-suggestion-menu" id="storeSearchSuggestions" role="listbox">
+              {storeSuggestions.map((store) => {
+                const project = getProject(store.projectId);
+                const categoryLabel = getCategory(store.category).label;
+
+                return (
+                  <Link
+                    key={store.id}
+                    className="search-suggestion-option"
+                    href={`/stores/${store.id}`}
+                    role="option"
+                    aria-selected="false"
+                  >
+                    <span className="search-suggestion-icon">
+                      <StoreIcon size={16} aria-hidden />
+                    </span>
+                    <span>
+                      <strong>{store.name}</strong>
+                      <small>
+                        {categoryLabel}
+                        {project ? ` · ${project.name}` : ""}
+                      </small>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       {isProjectOpen ? (

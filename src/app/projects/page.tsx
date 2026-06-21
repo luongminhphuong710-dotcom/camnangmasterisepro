@@ -1,7 +1,8 @@
 "use client";
 
 import { Map, MapPin, Search, Tags } from "lucide-react";
-import { useMemo, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { SectionHeading } from "@/components/SectionHeading";
 import { ThemeSelect } from "@/components/ThemeSelect";
@@ -13,6 +14,8 @@ export default function ProjectsPage() {
   const [city, setCity] = useState("all");
   const [segment, setSegment] = useState("all");
   const [query, setQuery] = useState("");
+  const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const regionOptions = Object.entries(regionMeta).map(([value, meta]) => ({ value, label: meta.label }));
   const cityOptions = useMemo(() => {
@@ -24,20 +27,36 @@ export default function ProjectsPage() {
     return [{ value: "all", label: "Tất cả phân khúc" }, ...segments.map((item) => ({ value: item, label: item }))];
   }, []);
 
-  const items = useMemo(() => {
+  const projectSuggestions = useMemo(() => {
     const text = normalize(query);
+    if (!text) return [];
+
+    return projects
+      .filter((project) =>
+        normalize([project.name, project.city, project.location, project.segment, project.status, project.summary].join(" ")).includes(text),
+      )
+      .slice(0, 7);
+  }, [query]);
+
+  const items = useMemo(() => {
     return projects.filter((project) => {
       const matchesRegion = region === "all" || project.region === region;
       const matchesCity = city === "all" || project.city === city;
       const matchesSegment = segment === "all" || project.segment === segment;
-      const matchesQuery =
-        !text ||
-        normalize([project.name, project.city, project.location, project.segment, project.status, project.summary].join(" ")).includes(
-          text,
-        );
-      return matchesRegion && matchesCity && matchesSegment && matchesQuery;
+      return matchesRegion && matchesCity && matchesSegment;
     });
-  }, [city, query, region, segment]);
+  }, [city, region, segment]);
+
+  useEffect(() => {
+    function closeSuggestions(event: MouseEvent) {
+      if (!searchRef.current?.contains(event.target as Node)) {
+        setIsSuggestionOpen(false);
+      }
+    }
+
+    document.addEventListener("click", closeSuggestions);
+    return () => document.removeEventListener("click", closeSuggestions);
+  }, []);
 
   return (
     <main className="detail-shell">
@@ -69,17 +88,50 @@ export default function ProjectsPage() {
           <Tags size={19} aria-hidden className="text-masterise-primary" />
           <ThemeSelect label="Lọc theo phân khúc" value={segment} options={segmentOptions} onChange={setSegment} />
         </div>
-        <label className="filter-field rounded-lg border border-masterise-line" htmlFor="projectSearchInput">
+        <div className="filter-field search-suggest-field rounded-lg border border-masterise-line" ref={searchRef}>
           <Search size={19} aria-hidden className="text-masterise-primary" />
           <input
             id="projectSearchInput"
             className="filter-input"
             type="search"
+            role="combobox"
+            aria-label="Tìm dự án"
+            autoComplete="off"
+            aria-autocomplete="list"
+            aria-expanded={isSuggestionOpen && projectSuggestions.length > 0}
+            aria-controls="projectSearchSuggestions"
             placeholder="Tìm dự án..."
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setIsSuggestionOpen(true);
+            }}
+            onFocus={() => setIsSuggestionOpen(true)}
           />
-        </label>
+          {isSuggestionOpen && projectSuggestions.length > 0 ? (
+            <div className="search-suggestion-menu" id="projectSearchSuggestions" role="listbox">
+              {projectSuggestions.map((project) => (
+                <Link
+                  key={project.id}
+                  className="search-suggestion-option"
+                  href={`/projects/${project.id}`}
+                  role="option"
+                  aria-selected="false"
+                >
+                  <span className="search-suggestion-icon">
+                    <MapPin size={16} aria-hidden />
+                  </span>
+                  <span>
+                    <strong>{project.name}</strong>
+                    <small>
+                      {project.city} · {project.segment}
+                    </small>
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="project-grid">

@@ -12,7 +12,7 @@ type StoreCardProps = {
 
 export function StoreCard({ store, project, distance }: StoreCardProps) {
   const category = getCategory(store.category);
-  const distanceLabel = distance === undefined ? null : distance === null ? "Chưa có khoảng cách" : `${distance.toFixed(1)} km`;
+  const distanceLabel = typeof distance === "number" ? `${distance.toFixed(1)} km` : null;
 
   return (
     <article className="store-card group relative flex h-full flex-col">

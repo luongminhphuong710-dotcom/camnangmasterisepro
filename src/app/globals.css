@@ -99,6 +99,10 @@ a {
     @apply whitespace-nowrap hover:text-[#f6ddb3] focus:text-[#f6ddb3] focus:outline-none;
   }
 
+  .main-nav .header-cta {
+    @apply inline-flex min-h-11 items-center justify-center rounded-full border border-white bg-white px-5 text-sm font-extrabold text-masterise-primary transition hover:bg-[#f6ddb3] hover:text-masterise-dark focus:bg-[#f6ddb3] focus:text-masterise-dark;
+  }
+
   .icon-button {
     @apply grid h-11 w-11 place-items-center rounded-full bg-white text-masterise-primary transition hover:bg-[#f6ddb3] hover:text-masterise-dark focus:bg-[#f6ddb3] focus:outline-none;
   }
@@ -119,31 +123,51 @@ a {
     width: calc(100vw - 28px);
     max-width: 1420px;
     margin-inline: auto;
-    @apply relative z-10 -mt-8 grid grid-cols-1 overflow-visible rounded-lg border border-masterise-line bg-white shadow-masterise md:grid-cols-2;
+    @apply relative z-10 -mt-8 grid grid-cols-1 overflow-visible rounded-lg border border-masterise-line bg-white shadow-masterise;
   }
 
   @media (min-width: 1024px) {
     .filter-card {
-      grid-template-columns:
-        minmax(150px, 0.9fr) minmax(210px, 1fr)
-        minmax(260px, 1.6fr) 220px;
+      grid-template-columns: minmax(300px, 0.95fr) minmax(420px, 1.6fr) 220px;
     }
   }
 
   @media (min-width: 1280px) {
     .filter-card {
-      grid-template-columns:
-        minmax(180px, 0.9fr) minmax(240px, 1fr)
-        minmax(340px, 1.6fr) 220px;
+      grid-template-columns: minmax(340px, 0.9fr) minmax(560px, 1.7fr) 220px;
     }
   }
 
   .filter-field {
-    @apply relative flex min-h-[60px] min-w-0 items-center gap-3 border-b border-masterise-line bg-white px-4 md:border-r md:border-b-0;
+    @apply relative flex min-h-[60px] min-w-0 items-center gap-3 border-b border-masterise-line bg-white px-4 lg:border-r lg:border-b-0;
   }
 
   .filter-input {
     @apply min-w-0 flex-1 bg-transparent text-sm font-medium text-masterise-ink outline-none;
+  }
+
+  .search-suggest-field {
+    @apply overflow-visible;
+  }
+
+  .search-suggestion-menu {
+    @apply absolute left-0 right-0 top-[calc(100%_+_10px)] z-50 grid gap-1.5 rounded-lg border border-masterise-line bg-white p-2 shadow-masterise;
+  }
+
+  .search-suggestion-option {
+    @apply flex min-h-12 w-full items-center gap-3 rounded-md px-3 py-2 text-left transition hover:bg-masterise-soft focus:bg-masterise-soft focus:outline-none;
+  }
+
+  .search-suggestion-icon {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-full bg-masterise-soft text-masterise-primary;
+  }
+
+  .search-suggestion-option strong {
+    @apply block text-sm font-bold leading-tight text-masterise-ink;
+  }
+
+  .search-suggestion-option small {
+    @apply mt-1 block text-xs font-medium text-masterise-muted;
   }
 
   .theme-select {
@@ -365,16 +389,116 @@ a {
     @apply h-full w-full object-cover;
   }
 
+  .contact-shell {
+    width: min(calc(100vw - 28px), 960px);
+    margin-inline: auto;
+    @apply py-10 md:py-14;
+  }
+
+  .contact-section {
+    @apply grid gap-9 md:gap-10;
+  }
+
+  .contact-intro {
+    @apply grid max-w-4xl gap-5;
+  }
+
+  .contact-intro .body-text {
+    @apply max-w-3xl;
+  }
+
+  .contact-methods {
+    @apply grid max-w-2xl gap-4 border-t border-masterise-line pt-7;
+  }
+
+  .contact-buttons {
+    @apply mt-2 grid w-full max-w-sm gap-2;
+  }
+
   .footer {
-    @apply mt-16 grid gap-10 bg-[#dedede] px-6 py-12 text-masterise-ink md:grid-cols-3 md:px-10 xl:px-16;
+    @apply mt-16 bg-masterise-ink text-white;
   }
 
-  .footer h3 {
-    @apply mb-4 text-lg font-semibold;
+  .footer-inner {
+    width: min(calc(100vw - 28px), 1420px);
+    margin-inline: auto;
+    @apply grid gap-10 py-12 md:grid-cols-[1.35fr_0.8fr_1fr] md:py-14;
   }
 
-  .footer ul {
-    @apply grid gap-3 text-sm;
+  .footer-brand {
+    @apply grid max-w-xl content-start gap-5;
+  }
+
+  .footer-logo-row {
+    @apply flex w-fit items-center gap-3;
+  }
+
+  .footer-logo {
+    @apply grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/25 bg-white text-sm font-extrabold text-masterise-primary;
+  }
+
+  .footer-logo-row strong {
+    @apply block text-lg font-extrabold leading-tight;
+  }
+
+  .footer-logo-row small {
+    @apply mt-1 block text-xs font-semibold uppercase tracking-[0.08em] text-[#e6d2b7];
+  }
+
+  .footer-brand p {
+    @apply max-w-lg text-sm leading-[1.7] text-white/70;
+  }
+
+  .footer-actions {
+    @apply flex flex-wrap gap-3;
+  }
+
+  .footer-action {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-bold text-white transition hover:border-white hover:bg-white hover:text-masterise-ink focus:border-white focus:bg-white focus:text-masterise-ink focus:outline-none;
+  }
+
+  .footer-action.primary {
+    @apply border-[#e6d2b7] bg-[#e6d2b7] text-masterise-ink hover:border-white hover:bg-white;
+  }
+
+  .footer-action svg {
+    @apply shrink-0;
+  }
+
+  .footer-column {
+    @apply grid content-start gap-4;
+  }
+
+  .footer-column h3 {
+    @apply text-base font-extrabold uppercase tracking-[0.08em] text-[#e6d2b7];
+  }
+
+  .footer-column ul {
+    @apply grid gap-3 text-sm text-white/75;
+  }
+
+  .footer-column a,
+  .footer-column span {
+    @apply flex w-fit min-w-0 items-center gap-2 transition;
+  }
+
+  .footer-column a:hover,
+  .footer-column a:focus {
+    @apply text-white outline-none;
+  }
+
+  .footer-column svg {
+    @apply shrink-0 text-[#e6d2b7];
+  }
+
+  .footer-bottom {
+    width: min(calc(100vw - 28px), 1420px);
+    margin-inline: auto;
+    @apply flex flex-wrap items-center justify-between gap-3 border-t border-white/10 py-5 text-xs font-medium text-white/60;
+  }
+
+  .footer-bottom span {
+    @apply inline-flex items-center gap-2;
   }
 
   @media (max-width: 1100px) {
@@ -402,8 +526,16 @@ a {
       @apply rounded-md px-4 py-3 text-masterise-ink hover:bg-masterise-soft hover:text-masterise-dark focus:bg-masterise-soft focus:text-masterise-dark;
     }
 
+    .main-nav .header-cta {
+      @apply rounded-md border-masterise-primary bg-masterise-primary px-4 py-3 text-white hover:bg-masterise-dark hover:text-white focus:bg-masterise-dark focus:text-white;
+    }
+
     .main-nav a[aria-current="page"] {
       @apply bg-masterise-soft text-masterise-primary;
+    }
+
+    .main-nav .header-cta[aria-current="page"] {
+      @apply bg-masterise-dark text-white;
     }
 
   }
