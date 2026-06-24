@@ -32,7 +32,7 @@ export type StoreReview = {
 
 export type StoreVoucher = {
   code: string;
-  title: string;
+  title?: string;
   description: string;
   expires: string;
   redeemCount?: number;

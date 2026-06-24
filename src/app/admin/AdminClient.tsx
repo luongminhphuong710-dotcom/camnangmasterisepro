@@ -302,7 +302,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     }
   }
 
-  async function saveToGithub(overrideData?: SiteData) {
+  async function saveData(overrideData?: SiteData) {
     if (!session?.token) {
       setStatus({ type: "error", message: "Bạn cần đăng nhập trước khi lưu." });
       return;
@@ -315,11 +315,11 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     const payload = overrideData ?? data;
     if (overrideData) setData(overrideData);
     setIsBusy(true);
-    setStatus({ type: "loading", message: "Đang lưu dữ liệu lên GitHub..." });
+    setStatus({ type: "loading", message: "Đang lưu dữ liệu..." });
     try {
       await apiRequest("data", { method: "PUT", token: session.token, body: { data: payload } });
       setIsDirty(false);
-      setStatus({ type: "success", message: "Đã lưu. Website sẽ deploy lại sau commit dữ liệu." });
+      setStatus({ type: "success", message: "Đã lưu. Thay đổi đã có hiệu lực ngay trên website." });
       pushToast("Đã lưu thành công.");
     } catch (error) {
       setStatus({ type: "error", message: errorMessage(error) });
@@ -446,7 +446,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
               <p className="eyebrow">CMS Cẩm Nang Masterise</p>
               <h1 className="h1 max-w-3xl">Quản trị gian hàng và dự án</h1>
               <p className="body-text mt-4 max-w-2xl">
-                Nền hiện tại là Next.js App Router. CMS dùng API server-side để giữ token GitHub trong môi trường server và phân quyền theo role.
+                Nền hiện tại là Next.js App Router. CMS dùng API server-side kết nối Neon (database) và Cloudinary (lưu ảnh), phân quyền theo role.
               </p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -564,13 +564,13 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
               canWrite={canWrite}
               canDelete={canDelete}
               isBusy={isBusy}
-              onSaveCategories={(nextCategories) => void saveToGithub({ ...data, storeCategories: nextCategories })}
+              onSaveCategories={(nextCategories) => void saveData({ ...data, storeCategories: nextCategories })}
               onDeleteCategory={(categoryId) => {
                 const nextCategories = data.storeCategories.filter((category) => stringValue(category.id) !== categoryId);
                 const nextStores = data.stores.map((store) =>
                   stringValue(store.category) === categoryId ? { ...store, category: UNASSIGNED_CATEGORY_ID } : store,
                 );
-                void saveToGithub({ ...data, storeCategories: nextCategories, stores: nextStores });
+                void saveData({ ...data, storeCategories: nextCategories, stores: nextStores });
               }}
               onViewStores={(categoryId) => {
                 navigateTo("stores");
@@ -713,7 +713,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                       <p className="text-sm font-semibold text-masterise-muted">
                         {isDirty ? "Có thay đổi chưa lưu." : "Thông tin hiện tại đã được lưu."}
                       </p>
-                      <button className="primary-button" type="button" onClick={() => void saveToGithub()} disabled={isBusy || !isDirty}>
+                      <button className="primary-button" type="button" onClick={() => void saveData()} disabled={isBusy || !isDirty}>
                         {isBusy ? <Loader2 className="animate-spin" size={18} aria-hidden /> : <Save size={18} aria-hidden />}
                         Lưu
                       </button>
@@ -747,7 +747,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
                   {canWrite ? (
                     <div className="mt-5 flex justify-end border-t border-masterise-line pt-4">
-                      <button className="primary-button" type="button" onClick={() => void saveToGithub()} disabled={isBusy || !isDirty}>
+                      <button className="primary-button" type="button" onClick={() => void saveData()} disabled={isBusy || !isDirty}>
                         {isBusy ? <Loader2 className="animate-spin" size={18} aria-hidden /> : <Save size={18} aria-hidden />}
                         Lưu
                       </button>

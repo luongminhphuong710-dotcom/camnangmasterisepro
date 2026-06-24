@@ -1,14 +1,14 @@
 import crypto from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { eq, getTableColumns, notInArray, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
-import sharp from "sharp";
+import { uploadCmsImage } from "@/lib/cloudinary";
+import { db } from "@/lib/db/client";
+import { cmsUsers, projects, storeCategories, stores } from "@/lib/db/schema";
+import { getSiteData } from "@/lib/runtime-data";
 
 export const runtime = "nodejs";
 
 const SESSION_TTL_SECONDS = 8 * 60 * 60;
-const CMS_IMAGE_MAX_SIZE = 1600;
-const CMS_IMAGE_WEBP_QUALITY = 78;
 
 type Role = "super_admin" | "admin" | "employee";
 
@@ -17,12 +17,7 @@ type CmsConfig = {
   adminPassword: string;
   usersJson: string;
   sessionSecret: string;
-  githubToken: string;
-  githubOwner: string;
-  githubRepo: string;
-  githubBranch: string;
-  githubPath: string;
-  usersPath: string;
+  databaseUrl: string;
 };
 
 type CmsUser = {
@@ -73,19 +68,12 @@ export async function GET(request: NextRequest) {
   try {
     const session = requireSession(request);
     if (action === "permissions") {
-      const users = publicUsers(await loadUsers(getConfig()));
+      const users = publicUsers(await loadUsers());
       return json({ users, currentUser: session.sub, currentRole: session.role });
     }
 
-    if (process.env.NODE_ENV !== "production") {
-      const source = await readFile(path.join(process.cwd(), getConfig().githubPath), "utf8");
-      return json({ data: parseDataSource(source), sha: "local" });
-    }
-
-    const file = await fetchGithubFile();
-    const source = decodeBase64(file.content);
-    const data = parseDataSource(source);
-    return json({ data, sha: file.sha });
+    const data = await getSiteData();
+    return json({ data });
   } catch (error) {
     return errorResponse(error);
   }
@@ -111,33 +99,8 @@ export async function PUT(request: NextRequest) {
       throw statusError("Dữ liệu CMS không hợp lệ.", 400);
     }
 
-    const config = getConfig();
-    const content = formatDataModule(data);
-    if (process.env.NODE_ENV !== "production") {
-      await writeFile(path.join(process.cwd(), config.githubPath), content, "utf8");
-      return json({
-        sha: "local",
-        commit: "local",
-        message: "Đã lưu dữ liệu vào file local.",
-      });
-    }
-
-    const file = await fetchGithubFile();
-    const result = await githubRequest(githubFileUrl(), {
-      method: "PUT",
-      body: JSON.stringify({
-        message: `Update site data from CMS - ${new Date().toISOString()}`,
-        content: encodeBase64(content),
-        sha: file.sha,
-        branch: config.githubBranch,
-      }),
-    });
-
-    return json({
-      sha: result.content?.sha,
-      commit: result.commit?.sha,
-      message: "Đã lưu dữ liệu lên GitHub.",
-    });
+    await saveSiteData(data);
+    return json({ message: "Đã lưu dữ liệu." });
   } catch (error) {
     return errorResponse(error);
   }
@@ -154,24 +117,73 @@ export async function DELETE(request: NextRequest) {
     const username = String(request.nextUrl.searchParams.get("username") || "");
     if (!username) throw statusError("Thiếu tài khoản cần xóa.", 400);
 
-    const config = getConfig();
-    const users = await loadUsers(config);
+    const users = await loadUsers();
     const target = users.find((user) => user.username === username);
     if (!target) throw statusError("Không tìm thấy tài khoản.", 404);
     if (target.role === "super_admin") throw statusError("Không thể xóa super admin mặc định.", 400);
 
-    const nextUsers = users.filter((user) => user.username !== username);
-    await saveUsers(config, nextUsers);
+    await db.delete(cmsUsers).where(eq(cmsUsers.username, username));
+    const nextUsers = await loadUsers();
     return json({ users: publicUsers(nextUsers), message: "Đã xóa tài khoản." });
   } catch (error) {
     return errorResponse(error);
   }
 }
 
+async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown }) {
+  const incomingStores = Array.isArray(data.stores) ? data.stores : [];
+  const incomingProjects = Array.isArray(data.projects) ? data.projects : [];
+  const incomingCategories = Array.isArray(data.storeCategories) ? data.storeCategories : [];
+
+  await db.transaction(async (tx) => {
+    if (incomingStores.length) {
+      await tx
+        .insert(stores)
+        .values(incomingStores)
+        .onConflictDoUpdate({ target: stores.id, set: buildConflictUpdateSet(stores) });
+      await tx.delete(stores).where(notInArray(stores.id, incomingStores.map((store: { id: string }) => store.id)));
+    } else {
+      await tx.delete(stores);
+    }
+
+    if (incomingProjects.length) {
+      await tx
+        .insert(projects)
+        .values(incomingProjects)
+        .onConflictDoUpdate({ target: projects.id, set: buildConflictUpdateSet(projects) });
+      await tx.delete(projects).where(notInArray(projects.id, incomingProjects.map((project: { id: string }) => project.id)));
+    } else {
+      await tx.delete(projects);
+    }
+
+    if (incomingCategories.length) {
+      await tx
+        .insert(storeCategories)
+        .values(incomingCategories)
+        .onConflictDoUpdate({ target: storeCategories.id, set: buildConflictUpdateSet(storeCategories) });
+      await tx
+        .delete(storeCategories)
+        .where(notInArray(storeCategories.id, incomingCategories.map((category: { id: string }) => category.id)));
+    } else {
+      await tx.delete(storeCategories);
+    }
+  });
+}
+
+function buildConflictUpdateSet(table: Parameters<typeof getTableColumns>[0]) {
+  const columns = getTableColumns(table);
+  const set: Record<string, unknown> = {};
+  for (const [key, column] of Object.entries(columns)) {
+    if (key === "id") continue;
+    set[key] = sql.raw(`excluded.${column.name}`);
+  }
+  return set;
+}
+
 async function handleLogin(request: NextRequest) {
   const config = getConfig();
-  ensureConfigured(config, process.env.NODE_ENV === "production" ? ["sessionSecret", "githubToken"] : ["sessionSecret"]);
-  const users = await loadUsers(config);
+  ensureConfigured(config, ["sessionSecret", "databaseUrl"]);
+  const users = await loadUsers();
   if (!users.length) {
     throw statusError("Thiếu cấu hình tài khoản CMS.", 500);
   }
@@ -185,10 +197,7 @@ async function handleLogin(request: NextRequest) {
     throw statusError("Tên đăng nhập hoặc mật khẩu không đúng.", 401);
   }
 
-  const nextUsers = users.map((candidate) =>
-    candidate.username === user.username ? { ...candidate, lastLoginAt: new Date().toISOString() } : candidate,
-  );
-  await saveUsers(config, nextUsers);
+  await db.update(cmsUsers).set({ lastLoginAt: new Date().toISOString() }).where(eq(cmsUsers.username, user.username));
 
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const token = createToken({ sub: user.username, role: user.role, exp: expiresAt }, config.sessionSecret);
@@ -213,40 +222,40 @@ async function handleUserMutation(request: NextRequest, session: SessionPayload)
     throw statusError("Tên đăng nhập chỉ dùng chữ, số, dấu chấm, gạch ngang hoặc gạch dưới, từ 3-32 ký tự.", 400);
   }
 
-  const config = getConfig();
-  const users = await loadUsers(config);
+  const users = await loadUsers();
 
   if (mode === "create") {
     requireRole(session.role, ["super_admin", "admin"]);
     if (role === "super_admin") throw statusError("Super admin mặc định chỉ có một tài khoản.", 400);
     if (users.some((user) => user.username === username)) throw statusError("Tên đăng nhập đã tồn tại.", 400);
     const temporaryPassword = generateTemporaryPassword();
-    const nextUsers = [...users, { username, role, passwordHash: hashPassword(temporaryPassword) }];
-    await saveUsers(config, nextUsers);
+    await db.insert(cmsUsers).values({ username, role, passwordHash: hashPassword(temporaryPassword) });
+    const nextUsers = await loadUsers();
     return json({ users: publicUsers(nextUsers), temporaryPassword, message: "Đã tạo tài khoản với mật khẩu tạm." });
   }
 
-  const targetIndex = users.findIndex((user) => user.username === originalUsername);
-  if (targetIndex < 0) throw statusError("Không tìm thấy tài khoản.", 404);
+  const target = users.find((user) => user.username === originalUsername);
+  if (!target) throw statusError("Không tìm thấy tài khoản.", 404);
 
-  const target = users[targetIndex];
-  const nextUser: CmsUser = { ...target };
+  const updates: { username?: string; role?: Role; passwordHash?: string } = {};
   if (canManageUsers && target.role !== "super_admin") {
-    if (username !== originalUsername && users.some((user, index) => index !== targetIndex && user.username === username)) {
+    if (username !== originalUsername && users.some((user) => user.username !== originalUsername && user.username === username)) {
       throw statusError("Tên đăng nhập đã tồn tại.", 400);
     }
-    nextUser.username = username;
-    nextUser.role = role === "super_admin" ? target.role : role;
+    updates.username = username;
+    updates.role = role === "super_admin" ? target.role : role;
   }
   if (password) {
-    nextUser.passwordHash = hashPassword(password);
+    updates.passwordHash = hashPassword(password);
   }
   if (!password && !canManageUsers) {
     throw statusError("Bạn cần nhập mật khẩu mới.", 400);
   }
 
-  const nextUsers = users.map((user, index) => (index === targetIndex ? nextUser : user));
-  await saveUsers(config, nextUsers);
+  if (Object.keys(updates).length) {
+    await db.update(cmsUsers).set(updates).where(eq(cmsUsers.username, originalUsername));
+  }
+  const nextUsers = await loadUsers();
   return json({ users: publicUsers(nextUsers), message: "Đã cập nhật tài khoản." });
 }
 
@@ -268,39 +277,20 @@ async function handleImageUpload(request: NextRequest) {
     throw statusError("Ảnh upload tối đa 5MB.", 400);
   }
 
-  const sourceBuffer = Buffer.from(await file.arrayBuffer());
-  const buffer = await optimizeCmsImage(sourceBuffer);
-  const filename = `${Date.now()}-${slugifyFileName(file.name)}.webp`;
-  const publicPath = `/uploads/cms/${filename}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const filenameHint = `${Date.now()}-${slugifyFileName(file.name)}`;
 
-  if (process.env.NODE_ENV !== "production") {
-    const uploadDirectory = path.join(process.cwd(), "public", "uploads", "cms");
-    await mkdir(uploadDirectory, { recursive: true });
-    await writeFile(path.join(uploadDirectory, filename), buffer);
-    return json({ url: publicPath });
+  try {
+    const url = await uploadCmsImage(buffer, filenameHint);
+    return json({ url });
+  } catch {
+    throw statusError("Không thể tải ảnh lên. Vui lòng thử file JPG, PNG hoặc WebP hợp lệ.", 400);
   }
-
-  const config = getConfig();
-  await githubRequest(
-    `https://api.github.com/repos/${config.githubOwner}/${config.githubRepo}/contents/${encodeURIComponent(
-      `public/uploads/cms/${filename}`,
-    )}`,
-    {
-      method: "PUT",
-      body: JSON.stringify({
-        message: `Upload CMS image - ${filename}`,
-        content: buffer.toString("base64"),
-        branch: config.githubBranch,
-      }),
-    },
-  );
-
-  return json({ url: publicPath });
 }
 
 function requireSession(request: NextRequest) {
   const config = getConfig();
-  ensureConfigured(config, process.env.NODE_ENV === "production" ? ["sessionSecret", "githubToken"] : ["sessionSecret"]);
+  ensureConfigured(config, ["sessionSecret", "databaseUrl"]);
   const token = getBearerToken(request);
   const session = token ? verifyToken(token, config.sessionSecret) : null;
   if (!session) {
@@ -315,63 +305,13 @@ function requireRole(role: Role, allowedRoles: Role[]) {
   }
 }
 
-async function fetchGithubFile() {
-  const file = await githubRequest(`${githubFileUrl()}?ref=${encodeURIComponent(getConfig().githubBranch)}`);
-  if (!file.content || !file.sha) {
-    throw new Error("GitHub không trả về file dữ liệu hợp lệ.");
-  }
-  return file;
-}
-
-async function githubRequest(url: string, options: RequestInit = {}) {
-  const config = getConfig();
-  ensureConfigured(config, ["githubToken"]);
-
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${config.githubToken}`,
-      "Content-Type": "application/json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      ...(options.headers || {}),
-    },
-  });
-
-  const text = await response.text();
-  const payload = text ? JSON.parse(text) : {};
-  if (!response.ok) {
-    throw statusError(payload.message || `GitHub API lỗi ${response.status}.`, response.status);
-  }
-  return payload;
-}
-
-function githubFileUrl() {
-  const config = getConfig();
-  return `https://api.github.com/repos/${config.githubOwner}/${config.githubRepo}/contents/${encodeURIComponent(
-    config.githubPath,
-  )}`;
-}
-
-function githubUsersUrl() {
-  const config = getConfig();
-  return `https://api.github.com/repos/${config.githubOwner}/${config.githubRepo}/contents/${encodeURIComponent(
-    config.usersPath,
-  )}`;
-}
-
 function getConfig(): CmsConfig {
   return {
     adminUser: process.env.CMS_ADMIN_USER || "admin",
     adminPassword: process.env.CMS_ADMIN_PASSWORD || "",
     usersJson: process.env.CMS_USERS_JSON || "",
     sessionSecret: process.env.CMS_SESSION_SECRET || "",
-    githubToken: process.env.CMS_GITHUB_TOKEN || process.env.GITHUB_TOKEN || "",
-    githubOwner: process.env.CMS_GITHUB_OWNER || "luongminhphuong710-dotcom",
-    githubRepo: process.env.CMS_GITHUB_REPO || "camnangmasterisepro",
-    githubBranch: process.env.CMS_GITHUB_BRANCH || "main",
-    githubPath: process.env.CMS_DATA_PATH || "src/lib/data.ts",
-    usersPath: process.env.CMS_USERS_PATH || ".cms-users.json",
+    databaseUrl: process.env.DATABASE_URL || "",
   };
 }
 
@@ -403,70 +343,25 @@ function getBootstrapUsers(config: CmsConfig): CmsUser[] {
   return [{ username: config.adminUser, passwordHash: hashPassword(config.adminPassword), role: "super_admin" }];
 }
 
-async function loadUsers(config: CmsConfig): Promise<CmsUser[]> {
-  if (process.env.NODE_ENV !== "production") {
-    const localPath = path.join(process.cwd(), config.usersPath);
-    try {
-      const parsed = JSON.parse(await readFile(localPath, "utf8"));
-      return normalizeStoredUsers(parsed);
-    } catch {
-      const bootstrapUsers = ensureSingleSuperAdmin(getBootstrapUsers(config));
-      await saveUsers(config, bootstrapUsers);
-      return bootstrapUsers;
-    }
-  }
+async function loadUsers(): Promise<CmsUser[]> {
+  const rows = await db.select().from(cmsUsers);
+  if (rows.length) return rows.map(toCmsUserShape);
 
-  try {
-    const file = await githubRequest(`${githubUsersUrl()}?ref=${encodeURIComponent(config.githubBranch)}`);
-    return normalizeStoredUsers(JSON.parse(decodeBase64(file.content)));
-  } catch {
-    return ensureSingleSuperAdmin(getBootstrapUsers(config));
+  const config = getConfig();
+  const bootstrapUsers = ensureSingleSuperAdmin(getBootstrapUsers(config));
+  if (bootstrapUsers.length) {
+    await db.insert(cmsUsers).values(bootstrapUsers).onConflictDoNothing();
   }
+  return bootstrapUsers;
 }
 
-async function saveUsers(config: CmsConfig, users: CmsUser[]) {
-  const nextUsers = ensureSingleSuperAdmin(users);
-  const content = `${JSON.stringify({ users: nextUsers }, null, 2)}\n`;
-
-  if (process.env.NODE_ENV !== "production") {
-    await writeFile(path.join(process.cwd(), config.usersPath), content, "utf8");
-    return;
-  }
-
-  let sha: string | undefined;
-  try {
-    const file = await githubRequest(`${githubUsersUrl()}?ref=${encodeURIComponent(config.githubBranch)}`);
-    sha = file.sha;
-  } catch {
-    sha = undefined;
-  }
-
-  await githubRequest(githubUsersUrl(), {
-    method: "PUT",
-    body: JSON.stringify({
-      message: `Update CMS users - ${new Date().toISOString()}`,
-      content: encodeBase64(content),
-      sha,
-      branch: config.githubBranch,
-    }),
-  });
-}
-
-function normalizeStoredUsers(value: unknown): CmsUser[] {
-  const source = value as { users?: unknown };
-  const users = Array.isArray(source.users) ? source.users : Array.isArray(value) ? value : [];
-  return ensureSingleSuperAdmin(
-    users
-      .map((item) => {
-        const user = item as Partial<CmsUser>;
-        const username = String(user.username || "");
-        const passwordHash = String(user.passwordHash || "");
-        const role = normalizeRole(user.role);
-        const lastLoginAt = user.lastLoginAt ? String(user.lastLoginAt) : undefined;
-        return username && passwordHash ? { username, passwordHash, role, ...(lastLoginAt ? { lastLoginAt } : {}) } : null;
-      })
-      .filter((item): item is CmsUser => Boolean(item)),
-  );
+function toCmsUserShape(row: typeof cmsUsers.$inferSelect): CmsUser {
+  return {
+    username: row.username,
+    passwordHash: row.passwordHash,
+    role: normalizeRole(row.role),
+    lastLoginAt: row.lastLoginAt ?? undefined,
+  };
 }
 
 function ensureSingleSuperAdmin(users: CmsUser[]): CmsUser[] {
@@ -551,56 +446,6 @@ function getBearerToken(request: NextRequest) {
   return match?.[1] || "";
 }
 
-function parseDataSource(source: string) {
-  if (source.includes("window.CAMNANG_DATA")) {
-    return parseSiteData(source);
-  }
-
-  const match = source.match(/export\s+const\s+camnangData\s*=\s*([\s\S]*?)\s+as\s+const\s*;/);
-  if (!match?.[1]) {
-    throw new Error("Không tìm thấy camnangData trong file dữ liệu.");
-  }
-
-  try {
-    return new Function(`return (${match[1]});`)();
-  } catch (error) {
-    throw new Error(`Không đọc được src/lib/data.ts: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-function parseSiteData(source: string) {
-  try {
-    const sandbox = {};
-    return new Function("window", `${source}; return window.CAMNANG_DATA;`)(sandbox);
-  } catch (error) {
-    throw new Error(`Không đọc được dữ liệu CMS: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-function formatDataModule(data: unknown) {
-  return `export const camnangData = ${JSON.stringify(data, null, 2)} as const;
-
-export const fallbackImage = camnangData.fallbackImage;
-export const regionMeta = camnangData.regionMeta;
-export const projects = camnangData.projects;
-export const storeCategories = camnangData.storeCategories;
-export const stores = camnangData.stores;
-export const newsItems = camnangData.newsItems;
-
-export type Project = (typeof projects)[number];
-export type Store = (typeof stores)[number];
-export type NewsItem = (typeof newsItems)[number];
-`;
-}
-
-function decodeBase64(value: string) {
-  return Buffer.from(String(value || "").replace(/\s/g, ""), "base64").toString("utf8");
-}
-
-function encodeBase64(value: string) {
-  return Buffer.from(value, "utf8").toString("base64");
-}
-
 function base64UrlEncode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
 }
@@ -613,36 +458,18 @@ function normalizeRole(role: unknown): Role {
   return role === "super_admin" || role === "admin" || role === "employee" ? role : "employee";
 }
 
-async function optimizeCmsImage(buffer: Buffer) {
-  try {
-    return await sharp(buffer, { animated: false })
-      .rotate()
-      .resize({
-        width: CMS_IMAGE_MAX_SIZE,
-        height: CMS_IMAGE_MAX_SIZE,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .webp({
-        quality: CMS_IMAGE_WEBP_QUALITY,
-        effort: 5,
-      })
-      .toBuffer();
-  } catch {
-    throw statusError("KhÃ´ng thá»ƒ náº¿n áº£nh. Vui lÃ²ng thá»­ file JPG, PNG hoáº·c WebP há»£p lá»‡.", 400);
-  }
-}
-
 function slugifyFileName(value: string) {
-  return value
-    .replace(/\.[^.]+$/, "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "image";
+  return (
+    value
+      .replace(/\.[^.]+$/, "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/đ/g, "d")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80) || "image"
+  );
 }
 
 function json(body: unknown, status = 200) {

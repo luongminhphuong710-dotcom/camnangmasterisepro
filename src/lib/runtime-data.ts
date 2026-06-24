@@ -1,83 +1,82 @@
 import "server-only";
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { unstable_noStore as noStore } from "next/cache";
+import { db } from "@/lib/db/client";
+import { projects, storeCategories, stores } from "@/lib/db/schema";
 import { camnangData } from "@/lib/data";
-import type { SiteData } from "@/lib/site-types";
-
-type CmsConfig = {
-  githubToken: string;
-  githubOwner: string;
-  githubRepo: string;
-  githubBranch: string;
-  githubPath: string;
-};
+import type { Project, SiteData, Store, StoreCategory } from "@/lib/site-types";
 
 export async function getSiteData(): Promise<SiteData> {
   noStore();
 
   try {
-    if (process.env.NODE_ENV === "production" && getConfig().githubToken) {
-      return normalizeSiteData(await readGithubSiteData());
-    }
-    return normalizeSiteData(parseDataSource(await readLocalDataSource()));
+    const [projectRows, categoryRows, storeRows] = await Promise.all([
+      db.select().from(projects),
+      db.select().from(storeCategories),
+      db.select().from(stores),
+    ]);
+
+    return {
+      fallbackImage: camnangData.fallbackImage,
+      regionMeta: camnangData.regionMeta,
+      newsItems: camnangData.newsItems,
+      projects: projectRows.map(toProjectShape),
+      storeCategories: categoryRows.map(toCategoryShape),
+      stores: storeRows.map(toStoreShape),
+    };
   } catch {
     return normalizeSiteData(camnangData);
   }
 }
 
-async function readLocalDataSource() {
-  return readFile(localDataPath(), "utf8");
-}
-
-async function readGithubSiteData() {
-  const config = getConfig();
-  const response = await fetch(githubFileUrl(), {
-    cache: "no-store",
-    headers: {
-      Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${config.githubToken}`,
-      "X-GitHub-Api-Version": "2022-11-28",
-    },
-  });
-  if (!response.ok) throw new Error(`GitHub data API failed: ${response.status}`);
-  const file = await response.json();
-  return parseDataSource(decodeBase64(file.content));
-}
-
-function getConfig(): CmsConfig {
+function toProjectShape(row: typeof projects.$inferSelect): Project {
   return {
-    githubToken: process.env.CMS_GITHUB_TOKEN || process.env.GITHUB_TOKEN || "",
-    githubOwner: process.env.CMS_GITHUB_OWNER || "luongminhphuong710-dotcom",
-    githubRepo: process.env.CMS_GITHUB_REPO || "camnangmasterisepro",
-    githubBranch: process.env.CMS_GITHUB_BRANCH || "main",
-    githubPath: process.env.CMS_DATA_PATH || "src/lib/data.ts",
+    id: row.id,
+    name: row.name,
+    region: row.region,
+    city: row.city,
+    location: row.location,
+    segment: row.segment,
+    status: row.status,
+    image: row.image,
+    source: row.source,
+    summary: row.summary,
+    highlights: row.highlights ?? [],
+    createdAt: row.createdAt ?? undefined,
+    updatedAt: row.updatedAt ?? undefined,
   };
 }
 
-function githubFileUrl() {
-  const config = getConfig();
-  return `https://api.github.com/repos/${config.githubOwner}/${config.githubRepo}/contents/${encodeURIComponent(
-    config.githubPath,
-  )}?ref=${encodeURIComponent(config.githubBranch)}`;
+function toCategoryShape(row: typeof storeCategories.$inferSelect): StoreCategory {
+  return {
+    id: row.id,
+    label: row.label,
+    icon: row.icon ?? undefined,
+  };
 }
 
-function localDataPath() {
-  const configuredPath = process.env.CMS_DATA_PATH;
-  return configuredPath
-    ? path.join(/* turbopackIgnore: true */ process.cwd(), configuredPath)
-    : path.join(process.cwd(), "src", "lib", "data.ts");
-}
-
-function parseDataSource(source: string) {
-  const match = source.match(/export\s+const\s+camnangData\s*=\s*([\s\S]*?)\s+as\s+const\s*;/);
-  if (!match?.[1]) throw new Error("Cannot find camnangData.");
-  return new Function(`return (${match[1]});`)();
-}
-
-function decodeBase64(value: string) {
-  return Buffer.from(String(value || "").replace(/\s/g, ""), "base64").toString("utf8");
+function toStoreShape(row: typeof stores.$inferSelect): Store {
+  return {
+    id: row.id,
+    name: row.name,
+    projectId: row.projectId,
+    category: row.category,
+    image: row.image,
+    images: row.images ?? undefined,
+    floor: row.floor,
+    hours: row.hours,
+    phone: row.phone,
+    rating: row.rating ?? undefined,
+    reviewCount: row.reviewCount ?? undefined,
+    note: row.note,
+    address: row.address ?? undefined,
+    mapEmbedUrl: row.mapEmbedUrl ?? undefined,
+    detailContent: row.detailContent ?? undefined,
+    vouchers: row.vouchers ?? undefined,
+    reviews: row.reviews ?? undefined,
+    createdAt: row.createdAt ?? undefined,
+    updatedAt: row.updatedAt ?? undefined,
+  };
 }
 
 function normalizeSiteData(value: unknown): SiteData {
