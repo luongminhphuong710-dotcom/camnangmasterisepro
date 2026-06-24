@@ -1,14 +1,19 @@
 import Link from "next/link";
 import Image from "next/image";
-import { type NewsItem } from "@/lib/data";
+import { projects as staticProjects, regionMeta as staticRegionMeta } from "@/lib/data";
+import type { NewsItem, Project, RegionMeta } from "@/lib/site-types";
 import { getProject, regionLabel } from "@/lib/helpers";
+import { getProjectFromData, regionLabelFromMeta } from "@/lib/site-utils";
 
 type NewsCardProps = {
   item: NewsItem;
+  projects?: readonly Project[];
+  regionMeta?: RegionMeta;
 };
 
-export function NewsCard({ item }: NewsCardProps) {
-  const project = getProject(item.projectId);
+export function NewsCard({ item, projects = staticProjects, regionMeta = staticRegionMeta }: NewsCardProps) {
+  const project = projects === staticProjects ? getProject(item.projectId) : getProjectFromData({ projects }, item.projectId);
+  const fallbackRegionLabel = regionMeta === staticRegionMeta ? regionLabel(item.region) : regionLabelFromMeta(regionMeta, item.region);
 
   return (
     <Link className="news-card grid h-full content-start" href={`/news/${item.id}`}>
@@ -17,7 +22,7 @@ export function NewsCard({ item }: NewsCardProps) {
       </figure>
       <div className="grid content-start gap-3 p-5">
         <span className="eyebrow mb-0">
-          {item.category} / {project ? project.name : regionLabel(item.region)}
+          {item.category} / {project ? project.name : fallbackRegionLabel}
         </span>
         <h3 className="h3">{item.title}</h3>
         <p className="body-text text-sm">{item.excerpt}</p>

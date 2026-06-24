@@ -1,13 +1,19 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Building2, ChevronRight, ExternalLink, Globe2, MapPin, Phone } from "lucide-react";
 
 export function Footer() {
+  const pathname = usePathname();
   const quickLinks = [
     { href: "/", label: "Trang chủ" },
     { href: "/projects", label: "Dự án" },
     { href: "/stores", label: "Gian hàng" },
     { href: "/contact", label: "Liên hệ" },
   ];
+
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <footer className="footer" id="contact">

@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import "quill/dist/quill.snow.css";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({

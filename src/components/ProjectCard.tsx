@@ -1,15 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Info, Store } from "lucide-react";
-import { projects, stores, type Project } from "@/lib/data";
+import { projects as staticProjects, regionMeta as staticRegionMeta, stores as staticStores } from "@/lib/data";
+import type { Project, RegionMeta, Store as StoreItem } from "@/lib/site-types";
 import { regionLabel } from "@/lib/helpers";
+import { regionLabelFromMeta } from "@/lib/site-utils";
 
 type ProjectCardProps = {
   project: Project;
+  regionMeta?: RegionMeta;
+  stores?: readonly StoreItem[];
 };
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, regionMeta = staticRegionMeta, stores = staticStores }: ProjectCardProps) {
   const projectStores = stores.filter((store) => store.projectId === project.id);
+  const displayRegion = regionMeta === staticRegionMeta ? regionLabel(project.region) : regionLabelFromMeta(regionMeta, project.region);
 
   return (
     <article className="project-card relative flex h-full cursor-pointer flex-col transition hover:shadow-masterise">
@@ -24,7 +29,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       <div className="project-body">
         <div>
           <span className="eyebrow mb-1 block">
-            {regionLabel(project.region)} / {project.city}
+            {displayRegion} / {project.city}
           </span>
           <h3 className="h3">{project.name}</h3>
         </div>
@@ -49,11 +54,19 @@ export function ProjectCard({ project }: ProjectCardProps) {
   );
 }
 
-export function ProjectPreviewGrid() {
+export function ProjectPreviewGrid({
+  projects = staticProjects,
+  regionMeta = staticRegionMeta,
+  stores = staticStores,
+}: {
+  projects?: readonly Project[];
+  regionMeta?: RegionMeta;
+  stores?: readonly StoreItem[];
+}) {
   return (
     <div className="project-grid">
       {projects.slice(0, 6).map((project) => (
-        <ProjectCard key={project.id} project={project} />
+        <ProjectCard key={project.id} project={project} regionMeta={regionMeta} stores={stores} />
       ))}
     </div>
   );

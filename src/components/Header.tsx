@@ -14,6 +14,9 @@ const navItems = [
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <header className="topbar">
@@ -37,7 +40,7 @@ export function Header() {
             <Link
               key={item.href}
               href={item.href}
-              aria-current={pathname === item.href ? "page" : undefined}
+              aria-current={isActive(item.href) ? "page" : undefined}
               onClick={() => setIsOpen(false)}
             >
               {item.label}

@@ -6,10 +6,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ProjectCard } from "@/components/ProjectCard";
 import { SectionHeading } from "@/components/SectionHeading";
 import { ThemeSelect } from "@/components/ThemeSelect";
-import { projects, regionMeta } from "@/lib/data";
-import { normalize } from "@/lib/helpers";
+import { camnangData } from "@/lib/data";
+import type { SiteData } from "@/lib/site-types";
+import { normalize } from "@/lib/site-utils";
 
 export default function ProjectsPage() {
+  const [data, setData] = useState<SiteData>(() => camnangData);
+  const { projects, regionMeta, stores } = data;
   const [region, setRegion] = useState("all");
   const [city, setCity] = useState("all");
   const [segment, setSegment] = useState("all");
@@ -17,15 +20,15 @@ export default function ProjectsPage() {
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  const regionOptions = Object.entries(regionMeta).map(([value, meta]) => ({ value, label: meta.label }));
+  const regionOptions = Object.entries(regionMeta).map(([value, meta]) => ({ value, label: meta.label || value }));
   const cityOptions = useMemo(() => {
     const cities = Array.from(new Set(projects.filter((project) => region === "all" || project.region === region).map((project) => project.city)));
     return [{ value: "all", label: "Tất cả tỉnh/thành" }, ...cities.map((item) => ({ value: item, label: item }))];
-  }, [region]);
+  }, [projects, region]);
   const segmentOptions = useMemo(() => {
     const segments = Array.from(new Set(projects.map((project) => project.segment)));
     return [{ value: "all", label: "Tất cả phân khúc" }, ...segments.map((item) => ({ value: item, label: item }))];
-  }, []);
+  }, [projects]);
 
   const projectSuggestions = useMemo(() => {
     const text = normalize(query);
@@ -36,7 +39,7 @@ export default function ProjectsPage() {
         normalize([project.name, project.city, project.location, project.segment, project.status, project.summary].join(" ")).includes(text),
       )
       .slice(0, 7);
-  }, [query]);
+  }, [projects, query]);
 
   const items = useMemo(() => {
     return projects.filter((project) => {
@@ -45,7 +48,23 @@ export default function ProjectsPage() {
       const matchesSegment = segment === "all" || project.segment === segment;
       return matchesRegion && matchesCity && matchesSegment;
     });
-  }, [city, region, segment]);
+  }, [city, projects, region, segment]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      const response = await fetch("/api/site-data", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      if (!cancelled && payload.data) setData(payload.data);
+    }
+
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     function closeSuggestions(event: MouseEvent) {
@@ -136,7 +155,7 @@ export default function ProjectsPage() {
 
       <div className="project-grid">
         {items.map((project) => (
-          <ProjectCard key={project.id} project={project} />
+          <ProjectCard key={project.id} project={project} regionMeta={regionMeta} stores={stores} />
         ))}
       </div>
     </main>

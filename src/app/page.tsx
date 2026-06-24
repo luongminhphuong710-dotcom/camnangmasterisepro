@@ -10,8 +10,9 @@ import { ProjectPreviewGrid } from "@/components/ProjectCard";
 import { SectionHeading } from "@/components/SectionHeading";
 import { StoreCard } from "@/components/StoreCard";
 import { ThemeSelect } from "@/components/ThemeSelect";
-import { newsItems, projects, stores } from "@/lib/data";
-import { getCategory, getProject, normalize } from "@/lib/helpers";
+import { camnangData } from "@/lib/data";
+import type { SiteData, Store as StoreItem } from "@/lib/site-types";
+import { getCategoryFromList, getProjectFromData, normalize } from "@/lib/site-utils";
 
 type SearchSuggestion = {
   id: string;
@@ -23,6 +24,8 @@ type SearchSuggestion = {
 
 export default function HomePage() {
   const router = useRouter();
+  const [data, setData] = useState<SiteData>(() => camnangData);
+  const { fallbackImage, newsItems, projects, storeCategories, stores } = data;
   const [projectId, setProjectId] = useState("all");
   const [query, setQuery] = useState("");
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
@@ -30,8 +33,24 @@ export default function HomePage() {
 
   const projectOptions = useMemo(
     () => [{ value: "all", label: "Chọn dự án bạn đang ở" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
-    [],
+    [projects],
   );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      const response = await fetch("/api/site-data", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      if (!cancelled && payload.data) setData(payload.data);
+    }
+
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const suggestions = useMemo<SearchSuggestion[]>(() => {
     const text = normalize(query);
@@ -49,13 +68,13 @@ export default function HomePage() {
 
     const storeSuggestions = stores
       .filter((store) => {
-        const project = getProject(store.projectId);
-        const category = getCategory(store.category);
+        const project = getProjectFromData(data, store.projectId);
+        const category = getCategoryFromList(storeCategories, store.category);
         return normalize([store.name, store.note, category.label, project?.name, project?.city].join(" ")).includes(text);
       })
       .map((store) => {
-        const project = getProject(store.projectId);
-        const category = getCategory(store.category);
+        const project = getProjectFromData(data, store.projectId);
+        const category = getCategoryFromList(storeCategories, store.category);
         return {
           id: `store-${store.id}`,
           label: store.name,
@@ -66,19 +85,19 @@ export default function HomePage() {
       });
 
     return [...storeSuggestions, ...projectSuggestions].slice(0, 7);
-  }, [query]);
+  }, [data, query, storeCategories, stores, projects]);
 
   const filteredStores = useMemo(() => {
     return stores
       .filter((store) => {
-        const project = getProject(store.projectId);
+        const project = getProjectFromData(data, store.projectId);
         if (!project) return false;
         const matchesProject = projectId === "all" || project.id === projectId;
         return matchesProject;
       })
-      .sort((a, b) => b.rating - a.rating)
+      .sort((a, b) => storeRating(b) - storeRating(a))
       .slice(0, 8);
-  }, [projectId]);
+  }, [data, projectId, stores]);
 
   useEffect(() => {
     function closeSuggestions(event: MouseEvent) {
@@ -110,8 +129,8 @@ export default function HomePage() {
     <main>
       <section className="hero-banner" aria-label="Cẩm nang Masterise">
         <Image
-          src="https://masterisehomes.com/_next/image?q=70&url=https%3A%2F%2Frevamp-ldp.masterisehomes.com%2Fuploads%2FMasteri_Grand_Coast_a2c320e2ba.jpg&w=1920"
-          alt="Phối cảnh dự án Masterise Homes"
+          src="https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg"
+          alt="Khu đô thị Vinhomes Ocean Park"
           fill
           priority
           sizes="100vw"
@@ -194,7 +213,13 @@ export default function HomePage() {
           {filteredStores.length ? (
             <div className="store-grid">
               {filteredStores.map((store) => (
-                <StoreCard key={store.id} store={store} project={getProject(store.projectId)} />
+                <StoreCard
+                  key={store.id}
+                  store={store}
+                  project={getProjectFromData(data, store.projectId)}
+                  fallbackImage={fallbackImage}
+                  storeCategories={storeCategories}
+                />
               ))}
             </div>
           ) : (
@@ -216,7 +241,7 @@ export default function HomePage() {
             </Link>
           }
         />
-        <ProjectPreviewGrid />
+        <ProjectPreviewGrid projects={projects} regionMeta={data.regionMeta} stores={stores} />
       </section>
 
       <section className="section">
@@ -232,7 +257,7 @@ export default function HomePage() {
         />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {newsItems.slice(0, 8).map((item) => (
-            <NewsCard key={item.id} item={item} />
+            <NewsCard key={item.id} item={item} projects={projects} regionMeta={data.regionMeta} />
           ))}
         </div>
       </section>
@@ -249,4 +274,12 @@ export default function HomePage() {
       </section>
     </main>
   );
+}
+
+function storeRating(store: StoreItem) {
+  const reviews = Array.isArray(store.reviews) ? store.reviews : [];
+  if (reviews.length) {
+    return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
+  }
+  return Number(store.rating || 0);
 }

@@ -1,18 +1,28 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Building2, Clock3, Eye, MapPin, Phone, Star } from "lucide-react";
-import { fallbackImage, type Project, type Store } from "@/lib/data";
-import { getCategory } from "@/lib/helpers";
+import { fallbackImage as staticFallbackImage, storeCategories as staticStoreCategories } from "@/lib/data";
+import type { Project, Store, StoreCategory } from "@/lib/site-types";
+import { getCategoryFromList } from "@/lib/site-utils";
 
 type StoreCardProps = {
   store: Store;
   project?: Project;
   distance?: number | null;
+  fallbackImage?: string;
+  storeCategories?: readonly StoreCategory[];
 };
 
-export function StoreCard({ store, project, distance }: StoreCardProps) {
-  const category = getCategory(store.category);
+export function StoreCard({
+  store,
+  project,
+  distance,
+  fallbackImage = staticFallbackImage,
+  storeCategories = staticStoreCategories,
+}: StoreCardProps) {
+  const category = getCategoryFromList(storeCategories, store.category);
   const distanceLabel = typeof distance === "number" ? `${distance.toFixed(1)} km` : null;
+  const reviewStats = getStoreReviewStats(store);
 
   return (
     <article className="store-card group relative flex h-full flex-col">
@@ -49,10 +59,12 @@ export function StoreCard({ store, project, distance }: StoreCardProps) {
               <Clock3 size={14} aria-hidden />
               {store.hours}
             </span>
-            <strong>
-              <Star size={14} aria-hidden />
-              {store.rating.toFixed(1)}/5 ({store.reviewCount})
-            </strong>
+            {reviewStats.count > 0 ? (
+              <strong>
+                <Star size={14} aria-hidden />
+                {reviewStats.rating.toFixed(1)}/5 ({reviewStats.count})
+              </strong>
+            ) : null}
           </div>
           <div className="action-row relative z-20">
             <Link className="primary-button" href={`/stores/${store.id}`}>
@@ -68,4 +80,11 @@ export function StoreCard({ store, project, distance }: StoreCardProps) {
       </div>
     </article>
   );
+}
+
+function getStoreReviewStats(store: Store) {
+  const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
+  if (!reviews.length) return { rating: 0, count: 0 };
+  const rating = reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
+  return { rating, count: reviews.length };
 }

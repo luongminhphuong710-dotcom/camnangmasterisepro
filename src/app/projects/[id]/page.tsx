@@ -4,20 +4,23 @@ import Image from "next/image";
 import { ExternalLink, Info, Store } from "lucide-react";
 import { NewsCard } from "@/components/NewsCard";
 import { StoreCard } from "@/components/StoreCard";
-import { newsItems, projects } from "@/lib/data";
-import { getProject, regionLabel, storesForProject } from "@/lib/helpers";
+import { getSiteData } from "@/lib/runtime-data";
+import { getProjectFromData, regionLabelFromMeta, storesForProjectFromData } from "@/lib/site-utils";
 
 type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
-  return projects.map((project) => ({ id: project.id }));
+  return [];
 }
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
   const { id } = await params;
-  const project = getProject(id);
+  const data = await getSiteData();
+  const project = getProjectFromData(data, id);
   return {
     title: project ? project.name : "Thông tin dự án",
     description: project?.summary,
@@ -26,7 +29,8 @@ export async function generateMetadata({ params }: ProjectPageProps): Promise<Me
 
 export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const { id } = await params;
-  const project = getProject(id);
+  const data = await getSiteData();
+  const project = getProjectFromData(data, id);
 
   if (!project) {
     return (
@@ -36,8 +40,9 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
     );
   }
 
-  const projectStores = storesForProject(project.id);
-  const relatedNews = newsItems.filter((item) => item.projectId === project.id || item.region === project.region).slice(0, 3);
+  const projectStores = storesForProjectFromData(data, project.id);
+  const relatedNews = data.newsItems.filter((item) => item.projectId === project.id || item.region === project.region).slice(0, 3);
+  const regionLabel = regionLabelFromMeta(data.regionMeta, project.region);
 
   return (
     <main className="detail-shell">
@@ -49,7 +54,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
           <p className="eyebrow">Thông tin dự án</p>
           <h1 className="h1">{project.name}</h1>
           <p className="body-text">
-            {regionLabel(project.region)} / {project.city} - {project.location}
+            {regionLabel} / {project.city} - {project.location}
           </p>
           <p className="body-text">{project.summary}</p>
           <div className="flex flex-wrap gap-2">
@@ -92,19 +97,25 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
         </div>
         <div className="store-grid">
           {projectStores.slice(0, 4).map((store) => (
-            <StoreCard key={store.id} store={store} project={project} />
+            <StoreCard
+              key={store.id}
+              store={store}
+              project={project}
+              fallbackImage={data.fallbackImage}
+              storeCategories={data.storeCategories}
+            />
           ))}
         </div>
       </section>
 
       <section className="py-10">
         <div className="section-heading">
-          <p className="eyebrow">{regionLabel(project.region)}</p>
+          <p className="eyebrow">{regionLabel}</p>
           <h2 className="h2">Tin liên quan</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {relatedNews.map((item) => (
-            <NewsCard key={item.id} item={item} />
+            <NewsCard key={item.id} item={item} projects={data.projects} regionMeta={data.regionMeta} />
           ))}
         </div>
       </section>

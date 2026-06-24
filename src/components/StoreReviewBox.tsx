@@ -113,7 +113,7 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
   const [showModerationNotice, setShowModerationNotice] = useState(false);
 
   const reviews = useMemo(() => (savedReview ? [savedReview, ...initialReviews] : initialReviews), [initialReviews, savedReview]);
-  const averageRating = reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 0;
+  const averageRating = reviews.length ? reviews.reduce((total, review) => total + review.rating, 0) / reviews.length : 5;
   const canSubmit = !savedReview || isEditing;
 
   useEffect(() => {

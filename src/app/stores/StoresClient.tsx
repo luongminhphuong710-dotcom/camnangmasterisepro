@@ -4,18 +4,20 @@ import Link from "next/link";
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, Store as StoreIcon, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
-import { projects, storeCategories, stores } from "@/lib/data";
-import { getCategory, getProject, normalize } from "@/lib/helpers";
+import type { SiteData, Store } from "@/lib/site-types";
+import { getCategoryFromList, getProjectFromData, normalize } from "@/lib/site-utils";
 
 const pageSize = 12;
 
 type StoresClientProps = {
+  data: SiteData;
   initialCategory?: string;
   initialProjectId?: string;
 };
 
-export function StoresClient({ initialCategory = "all", initialProjectId = "all" }: StoresClientProps) {
-  const initialProject = getProject(initialProjectId);
+export function StoresClient({ data, initialCategory = "all", initialProjectId = "all" }: StoresClientProps) {
+  const { fallbackImage, projects, storeCategories, stores } = data;
+  const initialProject = getProjectFromData(data, initialProjectId);
   const hasInitialCategory = storeCategories.some((item) => item.id === initialCategory);
   const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
   const [category, setCategory] = useState(hasInitialCategory ? initialCategory : "all");
@@ -28,7 +30,7 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
 
   const projectOptions = useMemo(
     () => [{ value: "all", label: "Tất cả dự án" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
-    [],
+    [projects],
   );
   const currentProjectOption = projectOptions.find((option) => option.value === projectId) ?? projectOptions[0];
   const filteredProjectOptions = useMemo(() => {
@@ -44,27 +46,27 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
 
     return stores
       .filter((store) => {
-        const project = getProject(store.projectId);
-        const storeCategory = getCategory(store.category);
+        const project = getProjectFromData(data, store.projectId);
+        const storeCategory = getCategoryFromList(storeCategories, store.category);
         const searchText = normalize(
           [store.name, store.note, store.floor, store.hours, storeCategory.label, project?.name, project?.city].join(" "),
         );
         return tokens.every((token) => searchText.includes(token));
       })
       .slice(0, 7);
-  }, [query]);
+  }, [data, query, storeCategories, stores]);
 
   const items = useMemo(() => {
     return stores
       .filter((store) => {
-        const project = getProject(store.projectId);
+        const project = getProjectFromData(data, store.projectId);
         if (!project) return false;
         const matchesProject = projectId === "all" || project.id === projectId;
         const matchesCategory = category === "all" || store.category === category;
         return matchesProject && matchesCategory;
       })
-      .sort((a, b) => b.rating - a.rating);
-  }, [category, projectId]);
+      .sort((a, b) => storeRating(b) - storeRating(a));
+  }, [category, data, projectId, stores]);
 
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -144,8 +146,8 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
           {isSuggestionOpen && storeSuggestions.length > 0 ? (
             <div className="search-suggestion-menu" id="storeSearchSuggestions" role="listbox">
               {storeSuggestions.map((store) => {
-                const project = getProject(store.projectId);
-                const categoryLabel = getCategory(store.category).label;
+                const project = getProjectFromData(data, store.projectId);
+                const categoryLabel = getCategoryFromList(storeCategories, store.category).label;
 
                 return (
                   <Link
@@ -274,7 +276,15 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
 
       <div className="store-grid">
         {visibleItems.length ? (
-          visibleItems.map((store) => <StoreCard key={store.id} store={store} project={getProject(store.projectId)} />)
+          visibleItems.map((store) => (
+            <StoreCard
+              key={store.id}
+              store={store}
+              project={getProjectFromData(data, store.projectId)}
+              fallbackImage={fallbackImage}
+              storeCategories={storeCategories}
+            />
+          ))
         ) : (
           <div className="rounded-lg border border-masterise-line bg-white p-6 text-masterise-muted">
             Không tìm thấy gian hàng hoặc dịch vụ phù hợp.
@@ -321,4 +331,10 @@ export function StoresClient({ initialCategory = "all", initialProjectId = "all"
       ) : null}
     </>
   );
+}
+
+function storeRating(store: Store) {
+  const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
+  if (!reviews.length) return 0;
+  return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
 }

@@ -5,8 +5,9 @@ import { Search, SlidersHorizontal, Store as StoreIcon, Target } from "lucide-re
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import { ThemeSelect } from "@/components/ThemeSelect";
-import { storeCategories, stores } from "@/lib/data";
-import { distanceInKm, getCategory, getProject, normalize, projectCoordinates } from "@/lib/helpers";
+import { camnangData } from "@/lib/data";
+import type { SiteData } from "@/lib/site-types";
+import { distanceInKm, getCategoryFromList, getProjectFromData, normalize, projectCoordinates } from "@/lib/site-utils";
 
 const radiusOptions = [
   { value: "3", label: "Trong 3 km" },
@@ -16,6 +17,8 @@ const radiusOptions = [
 ];
 
 export default function NearMePage() {
+  const [data, setData] = useState<SiteData>(() => camnangData);
+  const { fallbackImage, storeCategories, stores } = data;
   const [location] = useState<{ lat: number; lng: number } | null>(null);
   const [radius, setRadius] = useState("10");
   const [category, setCategory] = useState("all");
@@ -25,23 +28,39 @@ export default function NearMePage() {
 
   const categoryOptions = storeCategories.map((item) => ({ value: item.id, label: item.label }));
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadData() {
+      const response = await fetch("/api/site-data", { cache: "no-store" });
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      if (!cancelled && payload.data) setData(payload.data);
+    }
+
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const storeSuggestions = useMemo(() => {
     const text = normalize(query);
     if (!text) return [];
 
     return stores
       .filter((store) => {
-        const project = getProject(store.projectId);
-        const categoryLabel = getCategory(store.category).label;
+        const project = getProjectFromData(data, store.projectId);
+        const categoryLabel = getCategoryFromList(storeCategories, store.category).label;
         return normalize([store.name, store.note, store.floor, categoryLabel, project?.name, project?.city].join(" ")).includes(text);
       })
       .slice(0, 7);
-  }, [query]);
+  }, [data, query, storeCategories, stores]);
 
   const items = useMemo(() => {
     return stores
       .map((store) => {
-        const project = getProject(store.projectId);
+        const project = getProjectFromData(data, store.projectId);
         const coords = projectCoordinates[store.projectId];
         const distance = location && coords ? distanceInKm(location, coords) : null;
         return { store, project, distance };
@@ -53,7 +72,7 @@ export default function NearMePage() {
         return matchesRadius && matchesCategory;
       })
       .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
-  }, [category, location, radius]);
+  }, [category, data, location, radius, stores]);
 
   useEffect(() => {
     function closeSuggestions(event: MouseEvent) {
@@ -105,8 +124,8 @@ export default function NearMePage() {
             {isSuggestionOpen && storeSuggestions.length > 0 ? (
               <div className="search-suggestion-menu" id="nearSearchSuggestions" role="listbox">
                 {storeSuggestions.map((store) => {
-                  const project = getProject(store.projectId);
-                  const categoryLabel = getCategory(store.category).label;
+                  const project = getProjectFromData(data, store.projectId);
+                  const categoryLabel = getCategoryFromList(storeCategories, store.category).label;
 
                   return (
                     <Link
@@ -135,7 +154,14 @@ export default function NearMePage() {
         </div>
         <div className="store-grid">
           {items.map(({ store, project, distance }) => (
-            <StoreCard key={store.id} store={store} project={project} distance={distance} />
+            <StoreCard
+              key={store.id}
+              store={store}
+              project={project}
+              distance={distance}
+              fallbackImage={fallbackImage}
+              storeCategories={storeCategories}
+            />
           ))}
         </div>
       </section>

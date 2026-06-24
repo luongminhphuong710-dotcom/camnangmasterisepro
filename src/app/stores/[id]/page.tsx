@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   Building2,
   Clock3,
+  FileText,
   Info,
   Map,
   MapPin,
@@ -17,20 +18,40 @@ import { StoreCard } from "@/components/StoreCard";
 import { StoreReviewBox } from "@/components/StoreReviewBox";
 import { StoreHeroGallery } from "@/components/StoreHeroGallery";
 import { StoreVoucherTickets } from "@/components/StoreVoucherTickets";
-import { fallbackImage, stores } from "@/lib/data";
-import { getCategory, getProject } from "@/lib/helpers";
+import { getSiteData } from "@/lib/runtime-data";
+import type { Store as StoreItem } from "@/lib/site-types";
+import { getCategoryFromList, getProjectFromData } from "@/lib/site-utils";
 
 type StorePageProps = {
   params: Promise<{ id: string }>;
 };
 
+type CmsStoreReview = {
+  name: string;
+  rating: number;
+  comment: string;
+  images?: Array<{ id: string; name: string; url: string }>;
+  isAnonymous?: boolean;
+};
+
+type CmsStoreVoucher = {
+  code: string;
+  title: string;
+  description: string;
+  expires: string;
+  redeemCount?: number;
+};
+
+export const dynamic = "force-dynamic";
+
 export function generateStaticParams() {
-  return stores.map((store) => ({ id: store.id }));
+  return [];
 }
 
 export async function generateMetadata({ params }: StorePageProps): Promise<Metadata> {
   const { id } = await params;
-  const store = stores.find((item) => item.id === id);
+  const data = await getSiteData();
+  const store = data.stores.find((item) => item.id === id);
   return {
     title: store ? store.name : "Gian hàng",
     description: store?.note,
@@ -39,6 +60,8 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
 
 export default async function StoreDetailPage({ params }: StorePageProps) {
   const { id } = await params;
+  const data = await getSiteData();
+  const { fallbackImage, stores, storeCategories } = data;
   const store = stores.find((item) => item.id === id);
 
   if (!store) {
@@ -49,26 +72,37 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
     );
   }
 
-  const project = getProject(store.projectId);
-  const category = getCategory(store.category);
+  const project = getProjectFromData(data, store.projectId);
+  const category = getCategoryFromList(storeCategories, store.category);
+  const cmsStore = store as typeof store & {
+    detailContent?: string;
+    mapEmbedUrl?: string;
+    reviews?: CmsStoreReview[];
+    vouchers?: CmsStoreVoucher[];
+  };
   const relatedStores = stores
     .filter((item) => {
       if (item.id === store.id) return false;
-      const itemProject = getProject(item.projectId);
+      const itemProject = getProjectFromData(data, item.projectId);
       return itemProject?.region === project?.region;
     })
     .sort((a, b) => {
       const aSameCategory = a.category === store.category ? 0 : 1;
       const bSameCategory = b.category === store.category ? 0 : 1;
-      return aSameCategory - bSameCategory || b.rating - a.rating;
+      return aSameCategory - bSameCategory || storeRating(b) - storeRating(a);
     })
     .slice(0, 8);
-  const gallery = Array.from(new Set([store.image, project?.image, fallbackImage].flatMap((image) => (image ? [String(image)] : []))));
+  const storeImages = "images" in store && Array.isArray(store.images) ? store.images.map(String) : [store.image];
+  const gallery = Array.from(new Set([...storeImages, project?.image, fallbackImage].flatMap((image) => (image ? [String(image)] : []))));
   const address = [store.floor, project?.name, project?.location, project?.city].filter(Boolean).join(", ");
-  const mapQuery = `${store.name} ${project?.location ?? store.floor} ${project?.city ?? ""}`;
+  const mapQuery = `${store.name} ${address}`;
+  const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+  const mapEmbedSrc = googleMapsEmbedSrc(cmsStore.mapEmbedUrl) || `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`;
+  const detailContent = sanitizeRichTextHtml(cmsStore.detailContent || "");
   const cleanPhone = store.phone.replace(/\s/g, "");
   const navItems = [
-    { href: "#overview", label: "Thông tin chi tiết", icon: Info },
+    { href: "#overview", label: "Thông tin tổng quan", icon: Info },
+    { href: "#details", label: "Thông tin chi tiết", icon: FileText },
     { href: "#offers", label: "Ưu đãi", icon: TicketPercent },
     { href: "#map", label: "Liên hệ", icon: Phone },
     { href: "#reviews", label: "Đánh giá", icon: Star },
@@ -98,9 +132,12 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
       comment: "Mình thích phần hình ảnh và bản đồ, xem trước khá nhanh để biết nên đi lối nào.",
     },
   ];
-  const displayRating = demoReviews.length
-    ? demoReviews.reduce((total, review) => total + review.rating, 0) / demoReviews.length
-    : store.rating;
+  const cmsReviews = Array.isArray(cmsStore.reviews) ? cmsStore.reviews.filter((review) => review.name && review.comment) : [];
+  const displayReviews = cmsReviews.length ? cmsReviews : demoReviews.filter(() => false);
+  const displayRating = displayReviews.length
+    ? displayReviews.reduce((total, review) => total + review.rating, 0) / displayReviews.length
+    : null;
+  const storeVouchers = Array.isArray(cmsStore.vouchers) ? cmsStore.vouchers : undefined;
 
   return (
     <main className="detail-shell">
@@ -122,10 +159,12 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
                 <Clock3 size={17} aria-hidden className="text-masterise-primary" />
                 {store.hours}
               </span>
-              <span className="flex items-center gap-2">
-                <Star size={17} aria-hidden className="text-masterise-primary" />
-                {displayRating.toFixed(1)}/5 đánh giá cư dân
-              </span>
+              {displayRating !== null ? (
+                <span className="flex items-center gap-2">
+                  <Star size={17} aria-hidden className="text-masterise-primary" />
+                  {displayRating.toFixed(1)}/5 đánh giá cư dân
+                </span>
+              ) : null}
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -135,7 +174,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               </a>
               <a
                 className="secondary-button"
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                href={mapSearchUrl}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -187,7 +226,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
           </nav>
 
           <div className="order-5 lg:order-none">
-            <ContentBlock id="overview" eyebrow="Thông tin chi tiết" title={`Giới thiệu ${store.name}`}>
+            <ContentBlock id="overview" eyebrow="Thông tin tổng quan" title={`Giới thiệu ${store.name}`}>
               <p className="body-text">
                 {store.name} là điểm dịch vụ thuộc nhóm {category.label.toLowerCase()} tại {project?.name ?? "khu dự án"}.
                 Thông tin được trình bày theo dạng cẩm nang để cư dân nhanh chóng nắm được vị trí, thời gian hoạt động,
@@ -197,12 +236,22 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
           </div>
 
           <div className="order-6 lg:order-none">
-            <ContentBlock id="offers" eyebrow="Ưu đãi" title="Thông tin ưu đãi">
-              <StoreVoucherTickets storeName={store.name} />
+            <ContentBlock id="details" eyebrow="Thông tin chi tiết" title={`Chi tiết ${store.name}`}>
+              {detailContent ? (
+                <div className="rich-text-content" dangerouslySetInnerHTML={{ __html: detailContent }} />
+              ) : (
+                <p className="body-text">Thông tin chi tiết của gian hàng đang được cập nhật.</p>
+              )}
             </ContentBlock>
           </div>
 
           <div className="order-7 lg:order-none">
+            <ContentBlock id="offers" eyebrow="Ưu đãi" title="Thông tin ưu đãi">
+              <StoreVoucherTickets storeName={store.name} vouchers={storeVouchers} />
+            </ContentBlock>
+          </div>
+
+          <div className="order-8 lg:order-none">
             <ContentBlock id="map" eyebrow="Liên hệ" title="Chỉ đường đến gian hàng">
               <div className="mb-4 grid gap-3 md:grid-cols-2">
                 <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
@@ -225,13 +274,13 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
                   className="h-[320px] w-full"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`}
+                  src={mapEmbedSrc}
                   title={`Bản đồ ${store.name}`}
                 />
               </div>
               <a
                 className="secondary-button mt-4 w-fit"
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                href={mapSearchUrl}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -241,8 +290,8 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             </ContentBlock>
           </div>
 
-          <div id="reviews" className="order-8 scroll-mt-[168px] lg:order-none">
-            <StoreReviewBox initialReviews={demoReviews} storeId={store.id} />
+          <div id="reviews" className="order-9 scroll-mt-[168px] lg:order-none">
+            <StoreReviewBox initialReviews={displayReviews} storeId={store.id} />
           </div>
         </div>
 
@@ -263,10 +312,12 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
                 <Clock3 size={17} aria-hidden className="text-masterise-primary" />
                 {store.hours}
               </span>
-              <span className="flex items-center gap-2">
-                <Star size={17} aria-hidden className="text-masterise-primary" />
-                {displayRating.toFixed(1)}/5 đánh giá cư dân
-              </span>
+              {displayRating !== null ? (
+                <span className="flex items-center gap-2">
+                  <Star size={17} aria-hidden className="text-masterise-primary" />
+                  {displayRating.toFixed(1)}/5 đánh giá cư dân
+                </span>
+              ) : null}
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -276,7 +327,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               </a>
               <a
                 className="secondary-button"
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`}
+                href={mapSearchUrl}
                 target="_blank"
                 rel="noreferrer"
               >
@@ -296,13 +347,48 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {relatedStores.map((relatedStore) => (
-              <StoreCard key={relatedStore.id} store={relatedStore} project={getProject(relatedStore.projectId)} />
+              <StoreCard
+                key={relatedStore.id}
+                store={relatedStore}
+                project={getProjectFromData(data, relatedStore.projectId)}
+                fallbackImage={fallbackImage}
+                storeCategories={storeCategories}
+              />
             ))}
           </div>
         </section>
       ) : null}
     </main>
   );
+}
+
+function storeRating(store: StoreItem) {
+  const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
+  if (!reviews.length) return 0;
+  return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
+}
+
+function googleMapsEmbedSrc(value?: string) {
+  const rawValue = value?.trim();
+  if (!rawValue) return "";
+  const iframeSrc = (rawValue.match(/src=["']([^"']+)["']/i)?.[1] || rawValue).replace(/&amp;/g, "&");
+
+  try {
+    const url = new URL(iframeSrc);
+    const host = url.hostname.replace(/^www\./, "");
+    return host === "google.com" || host.endsWith(".google.com") ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeRichTextHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\s(?:on\w+|style)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src)=("|\')\s*javascript:[^"\']*\2/gi, "")
+    .trim();
 }
 
 function ContentBlock({
@@ -330,6 +416,7 @@ function ContentBlock({
 
 const sectionIconById: Record<string, LucideIcon> = {
   overview: Info,
+  details: FileText,
   offers: TicketPercent,
   map: Phone,
 };

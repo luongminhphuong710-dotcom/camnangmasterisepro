@@ -4,40 +4,36 @@ import { Check, ChevronLeft, ChevronRight, Copy, TicketPercent } from "lucide-re
 import { useState } from "react";
 
 type Voucher = {
-  code: string;
-  title: string;
-  description: string;
-  expires: string;
+  readonly code: string;
+  readonly description: string;
+  readonly expires?: string;
+  readonly redeemCount?: number;
 };
 
 type StoreVoucherTicketsProps = {
   storeName: string;
+  vouchers?: readonly Voucher[];
 };
 
-const vouchers: Voucher[] = [
+const defaultVouchers: Voucher[] = [
   {
     code: "CUDAN10",
-    title: "Giảm 10%",
-    description: "Áp dụng cho cư dân khi sử dụng dịch vụ trực tiếp tại gian hàng.",
-    expires: "Hết hạn cuối tháng",
+    description: "Giảm 10% khi sử dụng dịch vụ trực tiếp tại gian hàng.",
   },
   {
     code: "MASTERI50",
-    title: "Ưu đãi 50K",
-    description: "Giảm trực tiếp cho hóa đơn từ 300K, tùy điều kiện từng thời điểm.",
-    expires: "Số lượng có hạn",
+    description: "Giảm trực tiếp 50K cho hóa đơn từ 300K, tùy điều kiện từng thời điểm.",
   },
   {
     code: "WELCOME",
-    title: "Quà chào mừng",
     description: "Nhận phần quà nhỏ khi ghé gian hàng lần đầu và xác nhận thông tin cư dân.",
-    expires: "Áp dụng trong tuần",
   },
 ];
 
 const vouchersPerPage = 3;
 
-export function StoreVoucherTickets({ storeName }: StoreVoucherTicketsProps) {
+export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: StoreVoucherTicketsProps) {
+  const vouchers = storeVouchers || defaultVouchers;
   const [claimedCode, setClaimedCode] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const pageCount = Math.ceil(vouchers.length / vouchersPerPage);
@@ -83,6 +79,7 @@ export function StoreVoucherTickets({ storeName }: StoreVoucherTicketsProps) {
         </div>
       ) : null}
 
+      {vouchers.length ? (
       <div className="grid gap-3 md:grid-cols-3">
         {visibleVouchers.map((voucher) => {
           const isClaimed = claimedCode === voucher.code;
@@ -103,17 +100,14 @@ export function StoreVoucherTickets({ storeName }: StoreVoucherTicketsProps) {
                     <TicketPercent size={17} aria-hidden />
                     Voucher
                   </span>
-                  <strong className="text-xl leading-tight text-masterise-ink">{voucher.title}</strong>
+                  <strong className="text-base font-bold leading-snug text-masterise-ink">{voucher.description}</strong>
                 </span>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-masterise-primary">
                   {isClaimed ? <Check size={18} aria-hidden /> : <Copy size={17} aria-hidden />}
                 </span>
               </span>
 
-              <span className="mt-3 block text-sm leading-[1.5] text-masterise-muted">{voucher.description}</span>
-
-              <span className="mt-4 flex items-center justify-between gap-3 border-t border-dashed border-masterise-line pt-3">
-                <span className="text-xs font-semibold text-masterise-muted">{voucher.expires}</span>
+              <span className="mt-4 flex items-center justify-end gap-3 border-t border-dashed border-masterise-line pt-3">
                 <span className="rounded-md bg-white px-2.5 py-1 text-xs font-extrabold tracking-[0.08em] text-masterise-primary">
                   {isClaimed ? voucher.code : "LẤY MÃ"}
                 </span>
@@ -122,6 +116,11 @@ export function StoreVoucherTickets({ storeName }: StoreVoucherTicketsProps) {
           );
         })}
       </div>
+      ) : (
+        <div className="rounded-lg border border-dashed border-masterise-line bg-masterise-surface p-5 text-sm font-semibold text-masterise-muted">
+          Chưa có ưu đãi đang áp dụng.
+        </div>
+      )}
     </div>
   );
 }
