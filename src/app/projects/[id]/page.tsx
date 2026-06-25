@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ExternalLink, Info, Store } from "lucide-react";
+import { Info, Store } from "lucide-react";
 import { NewsCard } from "@/components/NewsCard";
 import { StoreCard } from "@/components/StoreCard";
 import { getSiteData } from "@/lib/runtime-data";
@@ -67,10 +67,6 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
               <Store size={17} aria-hidden />
               Gian hàng dự án
             </Link>
-            <a className="secondary-button" href={project.source} target="_blank" rel="noreferrer">
-              <ExternalLink size={17} aria-hidden />
-              Nguồn dự án
-            </a>
           </div>
         </div>
       </section>
