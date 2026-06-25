@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { ProjectsClient } from "./ProjectsClient";
+import { toProjectsClientData } from "@/lib/client-data";
 import { getSiteData } from "@/lib/runtime-data";
 import { seoMetadata } from "@/lib/seo";
-
-export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = seoMetadata({
   title: "Dự án Masterise",
@@ -13,6 +12,5 @@ export const metadata: Metadata = seoMetadata({
 
 export default async function ProjectsPage() {
   const data = await getSiteData();
-  return <ProjectsClient initialData={data} />;
+  return <ProjectsClient initialData={toProjectsClientData(data)} />;
 }
-

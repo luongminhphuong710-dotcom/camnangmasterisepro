@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { eq, getTableColumns, notInArray, sql } from "drizzle-orm";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { uploadCmsImage } from "@/lib/cloudinary";
 import { db } from "@/lib/db/client";
@@ -108,10 +109,16 @@ export async function PUT(request: NextRequest) {
     }
 
     await saveSiteData(data);
+    revalidateSiteData();
     return json({ message: "Đã lưu dữ liệu." });
   } catch (error) {
     return errorResponse(error);
   }
+}
+
+function revalidateSiteData() {
+  revalidateTag("site-data", "max");
+  ["/", "/du-an", "/gian-hang", "/tin-tuc", "/near-me", "/contact"].forEach((path) => revalidatePath(path));
 }
 
 export async function DELETE(request: NextRequest) {

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import HomeClient from "./HomeClient";
 import { camnangData } from "@/lib/data";
+import { toHomeClientData } from "@/lib/client-data";
 import { getSiteData } from "@/lib/runtime-data";
 import { jsonLd, seoMetadata, siteName, siteUrl } from "@/lib/seo";
 
@@ -30,7 +31,7 @@ export default async function Page() {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(websiteJsonLd) }} />
-      <HomeClient initialData={data} />
+      <HomeClient initialData={toHomeClientData(data)} />
     </>
   );
 }

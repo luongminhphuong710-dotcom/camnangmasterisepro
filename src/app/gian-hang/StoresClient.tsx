@@ -350,7 +350,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
 
 function storeRating(store: Store) {
   const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
-  if (!reviews.length) return 0;
+  if (!reviews.length) return Number(store.rating || 0);
   return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
 }
 

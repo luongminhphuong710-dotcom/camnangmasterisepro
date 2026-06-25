@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import "quill/dist/quill.snow.css";
 
 export const metadata: Metadata = {
   robots: {

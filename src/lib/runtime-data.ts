@@ -1,7 +1,7 @@
 import "server-only";
 
 import { sql } from "drizzle-orm";
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db/client";
 import { newsItems, projects, siteSettings, storeCategories, stores } from "@/lib/db/schema";
 import { camnangData } from "@/lib/data";
@@ -10,14 +10,23 @@ import type { NewsItem, Project, SiteData, SiteHomeSettings, Store, StoreCategor
 import { repairTextTree } from "@/lib/text-encoding";
 
 export async function getSiteData(): Promise<SiteData> {
-  noStore();
-
   if (isLocalDemoMode()) {
     return getLocalDemoSiteData();
   }
 
+  return getDatabaseSiteDataCached();
+}
+
+const getDatabaseSiteDataCached = unstable_cache(getDatabaseSiteData, ["site-data-v3"], {
+  revalidate: 300,
+  tags: ["site-data"],
+});
+
+let projectColumnsPromise: Promise<void> | null = null;
+
+async function getDatabaseSiteData(): Promise<SiteData> {
   try {
-    await ensureProjectColumns();
+    await ensureProjectColumnsOnce();
     const [projectRows, categoryRows, storeRows] = await Promise.all([
       db.select().from(projects),
       db.select().from(storeCategories),
@@ -51,6 +60,11 @@ export async function getSiteData(): Promise<SiteData> {
   } catch {
     return repairTextTree(normalizeSiteData(camnangData));
   }
+}
+
+function ensureProjectColumnsOnce() {
+  projectColumnsPromise ??= ensureProjectColumns();
+  return projectColumnsPromise;
 }
 
 function toNewsItemShape(row: typeof newsItems.$inferSelect): NewsItem {

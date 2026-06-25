@@ -5,7 +5,6 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { getSiteData } from "@/lib/runtime-data";
 import { siteUrl } from "@/lib/seo";
-import "quill/dist/quill.snow.css";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({

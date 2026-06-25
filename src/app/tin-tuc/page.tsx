@@ -1,9 +1,8 @@
 import { SectionHeading } from "@/components/SectionHeading";
+import { toNewsClientData } from "@/lib/client-data";
 import { getSiteData } from "@/lib/runtime-data";
 import { seoMetadata } from "@/lib/seo";
 import { NewsClient } from "./NewsClient";
-
-export const dynamic = "force-dynamic";
 
 export const metadata = seoMetadata({
   title: "Tin tức Masterise",
@@ -28,7 +27,7 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
         description="Theo dõi nhanh các thông báo, sự kiện và tiến độ dự án tại các khu đô thị Masterise."
       />
 
-      <NewsClient data={data} initialProjectId={params.project} />
+      <NewsClient data={toNewsClientData(data)} initialProjectId={params.project} />
     </main>
   );
 }

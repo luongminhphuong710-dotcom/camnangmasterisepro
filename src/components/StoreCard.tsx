@@ -84,7 +84,7 @@ export function StoreCard({
 
 function getStoreReviewStats(store: Store) {
   const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
-  if (!reviews.length) return { rating: 0, count: 0 };
+  if (!reviews.length) return { rating: Number(store.rating || 0), count: Number(store.reviewCount || 0) };
   const rating = reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
   return { rating, count: reviews.length };
 }
