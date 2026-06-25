@@ -2949,11 +2949,11 @@ function GalleryUploadField({
       onDragLeave={() => setIsDraggingFiles(false)}
       onDrop={handleDrop}
     >
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {value.map((image, index) => (
           <div
             key={`${image}-${index}`}
-            className="group relative aspect-square overflow-hidden rounded-lg border border-masterise-line bg-white"
+            className="group relative aspect-[4/2.5] overflow-hidden rounded-lg border border-masterise-line bg-white"
             draggable={!disabled}
             onDragStart={(event) => {
               setDragIndex(index);
@@ -2968,7 +2968,7 @@ function GalleryUploadField({
             }}
             onDragEnd={() => setDragIndex(null)}
           >
-            <Image src={image} alt={`Ảnh gian hàng ${index + 1}`} fill sizes="160px" className="object-cover" />
+            <Image src={image} alt={`Ảnh gian hàng ${index + 1}`} fill sizes="(min-width: 1280px) 420px, 100vw" className="object-cover" />
             <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-extrabold text-masterise-primary shadow-sm">
               {index === 0 ? "Đại diện" : index + 1}
             </span>
@@ -2987,7 +2987,7 @@ function GalleryUploadField({
 
         {!disabled ? (
           <button
-            className="grid aspect-square place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-bold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
+            className="grid aspect-[4/2.5] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-bold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
             type="button"
             disabled={isUploading}
             onClick={() => inputRef.current?.click()}
