@@ -318,12 +318,14 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
       return;
     }
 
-    const payload = overrideData ?? data;
+    const draftPayload = overrideData ?? data;
     if (overrideData) setData(overrideData);
     setIsBusy(true);
     setStatus({ type: "loading", message: "Đang lưu dữ liệu..." });
     try {
+      const payload = await uploadPendingCmsImages(draftPayload, session.token);
       const result = await apiRequest<{ message?: string }>("data", { method: "PUT", token: session.token, body: { data: payload } });
+      setData(payload);
       setIsDirty(false);
       const message = result.message || "Đã lưu. Thay đổi đã có hiệu lực ngay trên website.";
       setStatus({ type: "success", message });
@@ -2423,11 +2425,10 @@ function FieldEditor({
         <GalleryUploadField
           value={galleryValue(value, item.image)}
           disabled={disabled}
-          token={token}
           onChange={onChange}
         />
         <small className="text-xs font-normal leading-5 text-masterise-muted">
-          Kéo nhiều ảnh vào khung để upload. Kéo ảnh để đổi thứ tự; ảnh đầu tiên luôn là ảnh đại diện.
+          Kéo nhiều ảnh vào khung hoặc bấm Thêm ảnh để xem preview. Bấm Lưu mới upload lên Cloudinary; ảnh đầu tiên luôn là ảnh đại diện.
         </small>
       </div>
     );
@@ -2881,12 +2882,10 @@ function ImageUploadField({
 
 function GalleryUploadField({
   disabled,
-  token,
   value,
   onChange,
 }: {
   disabled: boolean;
-  token: string;
   value: string[];
   onChange: (value: CmsValue) => void;
 }) {
@@ -2905,7 +2904,7 @@ function GalleryUploadField({
     try {
       const uploadedImages: string[] = [];
       for (const file of imageFiles) {
-        uploadedImages.push(await uploadCmsImage(file, token));
+        uploadedImages.push(await createLocalImagePreview(file));
       }
       onChange([...value, ...uploadedImages]);
     } catch (uploadError) {
@@ -2994,7 +2993,7 @@ function GalleryUploadField({
           >
             <span className="grid justify-items-center gap-2">
               {isUploading ? <Loader2 className="animate-spin" size={24} aria-hidden /> : <ImagePlus size={24} aria-hidden />}
-              {isUploading ? "Đang upload..." : "Thêm ảnh"}
+              {isUploading ? "Đang xử lý..." : "Thêm ảnh"}
             </span>
           </button>
         ) : null}
@@ -3002,7 +3001,7 @@ function GalleryUploadField({
 
       {!value.length ? (
         <div className="grid min-h-[140px] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-5 text-center text-sm font-semibold text-masterise-muted">
-          Kéo ảnh vào đây hoặc bấm Thêm ảnh để upload.
+          Kéo ảnh vào đây hoặc bấm Thêm ảnh để xem preview.
         </div>
       ) : null}
 
@@ -3139,6 +3138,73 @@ async function uploadCmsImage(file: File, token: string) {
     throw new Error(payload.message || `Upload ảnh lỗi ${response.status}.`);
   }
   return String(payload.url || "");
+}
+
+async function createLocalImagePreview(file: File) {
+  const preparedFile = await prepareCmsUploadFile(file);
+  return fileToDataUrl(preparedFile);
+}
+
+async function uploadPendingCmsImages(payload: SiteData, token: string): Promise<SiteData> {
+  const uploadedByPreview = new Map<string, string>();
+  const nextData = clone(payload) as SiteData;
+  const nextStores = [];
+
+  for (const store of nextData.stores) {
+    const images = Array.isArray(store.images) ? [...store.images] : [];
+    const nextImages = [];
+    for (const image of images) {
+      nextImages.push(await uploadPendingImage(String(image), token, uploadedByPreview));
+    }
+
+    const explicitImage = stringValue(store.image);
+    const nextImage = await uploadPendingImage(explicitImage || String(images[0] || ""), token, uploadedByPreview);
+    nextStores.push({
+      ...store,
+      images: nextImages,
+      image: nextImages[0] || nextImage,
+    });
+  }
+
+  return {
+    ...nextData,
+    stores: nextStores,
+  };
+}
+
+async function uploadPendingImage(value: string, token: string, uploadedByPreview: Map<string, string>) {
+  if (!isLocalPreviewImage(value)) return value;
+  const cachedUrl = uploadedByPreview.get(value);
+  if (cachedUrl) return cachedUrl;
+
+  const file = dataUrlToFile(value);
+  const url = await uploadCmsImage(file, token);
+  uploadedByPreview.set(value, url);
+  return url;
+}
+
+function isLocalPreviewImage(value: string) {
+  return value.startsWith("data:image/");
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Không thể đọc ảnh."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function dataUrlToFile(value: string) {
+  const [header, body] = value.split(",");
+  const mime = header.match(/^data:([^;]+);base64$/)?.[1] || "image/jpeg";
+  const binary = window.atob(body || "");
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new File([bytes], "cms-image.jpg", { type: mime });
 }
 
 async function prepareCmsUploadFile(file: File) {
