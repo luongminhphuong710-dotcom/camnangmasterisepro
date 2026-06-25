@@ -2949,7 +2949,7 @@ function GalleryUploadField({
       onDragLeave={() => setIsDraggingFiles(false)}
       onDrop={handleDrop}
     >
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
         {value.map((image, index) => (
           <div
             key={`${image}-${index}`}
@@ -2968,7 +2968,7 @@ function GalleryUploadField({
             }}
             onDragEnd={() => setDragIndex(null)}
           >
-            <Image src={image} alt={`Ảnh gian hàng ${index + 1}`} fill sizes="(min-width: 1280px) 420px, 100vw" className="object-cover" />
+            <Image src={image} alt={`Ảnh gian hàng ${index + 1}`} fill sizes="(min-width: 1536px) 220px, (min-width: 1024px) 25vw, 50vw" className="object-cover" />
             <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-extrabold text-masterise-primary shadow-sm">
               {index === 0 ? "Đại diện" : index + 1}
             </span>
@@ -3119,9 +3119,13 @@ function ReviewImageUploadSlots({
   );
 }
 
+const CMS_UPLOAD_TARGET_BYTES = 3.5 * 1024 * 1024;
+const CMS_UPLOAD_MAX_DIMENSION = 1800;
+
 async function uploadCmsImage(file: File, token: string) {
+  const uploadFile = await prepareCmsUploadFile(file);
   const formData = new FormData();
-  formData.append("file", file);
+  formData.append("file", uploadFile);
 
   const response = await fetch(`${CMS_API}?action=upload-image`, {
     method: "POST",
@@ -3135,6 +3139,35 @@ async function uploadCmsImage(file: File, token: string) {
     throw new Error(payload.message || `Upload ảnh lỗi ${response.status}.`);
   }
   return String(payload.url || "");
+}
+
+async function prepareCmsUploadFile(file: File) {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return file;
+  if (file.size <= CMS_UPLOAD_TARGET_BYTES) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, CMS_UPLOAD_MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) return file;
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(bitmap, 0, 0, width, height);
+    bitmap.close();
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") || "cms-image";
+    return new File([blob], `${name}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return file;
+  }
 }
 
 function VoucherEditor({
