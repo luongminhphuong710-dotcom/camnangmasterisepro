@@ -92,8 +92,8 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
       return aSameCategory - bSameCategory || storeRating(b) - storeRating(a);
     })
     .slice(0, 8);
-  const storeImages = "images" in store && Array.isArray(store.images) ? store.images.map(String) : [store.image];
-  const gallery = Array.from(new Set([...storeImages, project?.image, fallbackImage].flatMap((image) => (image ? [String(image)] : []))));
+  const storeImages = "images" in store && Array.isArray(store.images) ? store.images.map(String) : [];
+  const gallery = Array.from(new Set([...storeImages, store.image].flatMap((image) => (image ? [String(image)] : []))));
   const address = [store.floor, project?.name, project?.location, project?.city].filter(Boolean).join(", ");
   const mapQuery = `${store.name} ${address}`;
   const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
