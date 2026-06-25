@@ -2832,7 +2832,7 @@ function RichTextEditor({
         ref={fileInputRef}
         className="hidden"
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
+        accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
@@ -3069,7 +3069,7 @@ function ImageUploadField({
         ref={inputRef}
         className="hidden"
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
+        accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
         onChange={(event) => {
           const file = event.target.files?.[0];
           event.target.value = "";
@@ -3082,7 +3082,7 @@ function ImageUploadField({
   );
 }
 
-const IMAGE_FILE_EXTENSION_PATTERN = /\.(png|jpe?g|webp|gif|bmp|avif|heic|heif)$/i;
+const IMAGE_FILE_EXTENSION_PATTERN = /\.(png|jpe?g|jfif|pjpeg|pjp|webp|gif|bmp|avif|heic|heif)$/i;
 
 function isImageFile(file: File) {
   if (file.type) return file.type.startsWith("image/");
@@ -3204,7 +3204,7 @@ function GalleryUploadField({
             <input
               className="sr-only"
               type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
+              accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
               multiple
               disabled={isUploading}
               onChange={(event) => {
@@ -3309,7 +3309,7 @@ function ReviewImageUploadSlots({
               <input
                 className="sr-only"
                 type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
+                accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
                 disabled={disabled || isUploading}
                 onChange={(event) => {
                   const file = event.target.files?.[0];
