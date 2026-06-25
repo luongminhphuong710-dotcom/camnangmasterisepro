@@ -321,7 +321,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
         ) : null}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid items-stretch gap-5 md:grid-cols-2 xl:grid-cols-3">
         {visibleItems.length ? (
           visibleItems.map((item) => <NewsCard key={item.id} item={item} projects={data.projects} regionMeta={data.regionMeta} />)
         ) : (

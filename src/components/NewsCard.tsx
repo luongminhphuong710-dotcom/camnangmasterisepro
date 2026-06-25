@@ -17,15 +17,15 @@ export function NewsCard({ item, projects = staticProjects, regionMeta = staticR
   const metaLabel = project?.name || fallbackRegionLabel;
 
   return (
-    <Link className="news-card grid h-full content-start" href={`/tin-tuc/${item.id}`}>
+    <Link className="news-card flex h-full flex-col" href={`/tin-tuc/${item.id}`}>
       <figure>
-        <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
+        <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw" />
       </figure>
-      <div className="grid content-start gap-3 p-5">
-        <span className="eyebrow mb-0">{metaLabel ? `${item.category} / ${metaLabel}` : item.category}</span>
-        <h3 className="h3">{item.title}</h3>
-        <p className="body-text text-sm">{item.excerpt}</p>
-        <div className="flex flex-wrap gap-2">
+      <div className="news-card-body">
+        <span className="news-card-eyebrow eyebrow mb-0">{metaLabel ? `${item.category} / ${metaLabel}` : item.category}</span>
+        <h3 className="news-card-title">{item.title}</h3>
+        <p className="news-card-excerpt body-text text-sm">{item.excerpt}</p>
+        <div className="news-card-tags">
           {item.hashtags.slice(0, 3).map((tag) => (
             <small className="tag" key={tag}>
               {tag}
