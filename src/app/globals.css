@@ -148,7 +148,11 @@ a {
   }
 
   .brand-mark {
-    @apply grid h-12 w-12 place-items-center rounded-full border border-white/40 bg-white/10 font-bold text-[#f5e8d0];
+    @apply relative grid h-12 w-12 place-items-center overflow-hidden rounded-full border border-white/40 bg-white/10 font-bold text-[#f5e8d0];
+  }
+
+  .brand-logo-image {
+    @apply block h-12 w-auto max-w-[220px] object-contain;
   }
 
   .header-menu {
@@ -184,7 +188,7 @@ a {
   }
 
   .hero-banner {
-    @apply relative h-[280px] overflow-hidden bg-masterise-soft md:h-[420px];
+    @apply relative h-[240px] overflow-hidden bg-masterise-soft sm:h-[300px] md:h-[420px];
   }
 
   .hero-banner img {
@@ -517,7 +521,11 @@ a {
   }
 
   .footer-logo {
-    @apply grid h-12 w-12 shrink-0 place-items-center rounded-full border border-white/25 bg-white text-sm font-extrabold text-masterise-primary;
+    @apply relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-full border border-white/25 bg-white text-sm font-extrabold text-masterise-primary;
+  }
+
+  .footer-logo-image {
+    @apply block h-12 w-auto max-w-[240px] object-contain;
   }
 
   .footer-logo-row strong {
@@ -624,8 +632,44 @@ a {
   }
 
   @media (max-width: 720px) {
+    .page-shell,
+    .section,
+    .detail-shell,
+    .footer-inner,
+    .footer-bottom {
+      width: min(calc(100vw - 20px), 1420px);
+    }
+
+    .section {
+      @apply py-10;
+    }
+
+    .detail-shell {
+      @apply py-6;
+    }
+
+    .h1 {
+      @apply text-[1.9rem] leading-[1.18];
+    }
+
+    .h2 {
+      @apply text-[1.55rem];
+    }
+
+    .h3 {
+      @apply text-lg;
+    }
+
     .topbar {
-      @apply relative;
+      @apply relative min-h-[64px] px-3;
+    }
+
+    .brand-mark {
+      @apply h-10 w-10;
+    }
+
+    .brand-logo-image {
+      @apply h-10 max-w-[190px];
     }
 
     .header-menu {
@@ -634,6 +678,65 @@ a {
 
     .main-nav {
       @apply grid-cols-1 text-sm;
+    }
+
+    .filter-card {
+      width: calc(100vw - 20px);
+      @apply -mt-6;
+    }
+
+    .filter-field {
+      @apply min-h-[56px] px-3;
+    }
+
+    .filter-button {
+      @apply min-h-[56px];
+    }
+
+    .section-heading {
+      @apply mb-5;
+    }
+
+    .section-heading.with-action {
+      @apply items-start;
+    }
+
+    .section-heading.with-action .secondary-button {
+      @apply w-full;
+    }
+
+    .action-row {
+      @apply grid grid-cols-1;
+    }
+
+    .action-row .primary-button,
+    .action-row .secondary-button {
+      @apply w-full flex-none;
+    }
+
+    .project-body {
+      @apply p-4;
+    }
+
+    .store-card-title {
+      min-height: auto;
+      font-size: 18px;
+    }
+
+    .meta-grid {
+      @apply grid-cols-1;
+    }
+
+    .chip-row {
+      @apply gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden;
+    }
+
+    .chip {
+      @apply shrink-0;
+    }
+
+    .footer-logo-image {
+      @apply h-10 max-w-[200px];
     }
 
   }

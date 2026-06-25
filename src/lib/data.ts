@@ -1,5 +1,13 @@
 export const camnangData = {
   "fallbackImage": "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+  "homeSettings": {
+    "logo": "",
+    "headerLogo": "",
+    "footerLogo": "",
+    "metaTitle": "Cẩm Nang Masterise | Nhà tôi ở Masterise",
+    "metaDescription": "Cẩm nang cư dân Masterise: tra cứu dự án theo miền, thông tin dự án, gian hàng và tin tức cần biết.",
+    "headBannerImage": "https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg"
+  },
   "regionMeta": {
     "all": {
       "label": "Tất cả",

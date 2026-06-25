@@ -4,6 +4,7 @@ import Link from "next/link";
 import { NewsCard } from "@/components/NewsCard";
 import { normalize } from "@/lib/helpers";
 import { getSiteData } from "@/lib/runtime-data";
+import { jsonLd, seoMetadata, siteName, siteUrl } from "@/lib/seo";
 import type { NewsItem } from "@/lib/site-types";
 
 type ArticlePageProps = {
@@ -24,10 +25,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const { id } = await params;
   const data = await getSiteData();
   const article = data.newsItems.find((item) => item.id === id);
-  return {
+  return seoMetadata({
     title: article ? article.title : "Bài viết",
-    description: article?.excerpt,
-  };
+    description: article?.excerpt || "Tin tức và thông tin cư dân Masterise.",
+    path: `/tin-tuc/${id}`,
+    image: article?.image,
+    type: "article",
+  });
 }
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
@@ -52,15 +56,36 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const tableOfContents = article.content
     .map((block, index) => getHeadingItem(block, index))
     .filter((item): item is HeadingItem => Boolean(item));
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: article.title,
+    description: article.excerpt,
+    image: article.image,
+    datePublished: article.createdAt || toIsoDate(article.date),
+    dateModified: article.updatedAt || article.createdAt || toIsoDate(article.date),
+    mainEntityOfPage: `${siteUrl}/tin-tuc/${article.id}`,
+    author: {
+      "@type": "Organization",
+      name: siteName,
+      url: siteUrl,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: siteName,
+      url: siteUrl,
+    },
+  };
 
   return (
     <main className="grid gap-8">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd) }} />
       <section className="bg-white py-8 md:py-12">
         <div className="page-shell grid gap-10">
           <article className="mx-auto grid max-w-5xl gap-8">
             <div className="grid max-w-4xl gap-5 text-left">
               <nav aria-label="Breadcrumb bài viết" className="flex min-w-0 items-center gap-2 text-xs font-extrabold uppercase text-masterise-primary">
-                <Link className="shrink-0 transition hover:text-masterise-dark" href="/news">
+                <Link className="shrink-0 transition hover:text-masterise-dark" href="/tin-tuc">
                   Tin tức
                 </Link>
                 <span aria-hidden className="shrink-0 text-masterise-muted">
@@ -70,7 +95,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   {article.title}
                 </span>
               </nav>
-              <h1 className="text-[42px] font-bold leading-[1.16] tracking-normal text-masterise-ink">{article.title}</h1>
+              <h1 className="text-[2rem] font-bold leading-[1.16] tracking-normal text-masterise-ink md:text-[42px]">{article.title}</h1>
               <p className="body-text">{article.excerpt}</p>
               <time className="text-sm font-semibold text-masterise-primary" dateTime={toIsoDate(article.date)}>
                 {article.date}
@@ -81,6 +106,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 src={article.image}
                 alt={article.title}
                 fill
+                priority
+                fetchPriority="high"
                 sizes="(min-width: 768px) 45vw, 100vw"
                 className="object-cover"
               />

@@ -66,16 +66,22 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
   }, [data, query, storeCategories, visibleStores]);
 
   const items = useMemo(() => {
+    const tokens = normalize(query).split(/\s+/).filter(Boolean);
     return visibleStores
       .filter((store) => {
         const project = getProjectFromData(data, store.projectId);
         if (!project) return false;
         const matchesProject = projectId === "all" || project.id === projectId;
         const matchesCategory = category === "all" || store.category === category;
-        return matchesProject && matchesCategory;
+        const storeCategory = getCategoryFromList(storeCategories, store.category);
+        const searchText = normalize(
+          [store.name, store.note, store.floor, store.hours, storeCategory.label, project.name, project.location, project.city].join(" "),
+        );
+        const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));
+        return matchesProject && matchesCategory && matchesQuery;
       })
       .sort((a, b) => storeRating(b) - storeRating(a));
-  }, [category, data, projectId, visibleStores]);
+  }, [category, data, projectId, query, storeCategories, visibleStores]);
 
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -162,7 +168,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
                   <Link
                     key={store.id}
                     className="search-suggestion-option"
-                    href={`/stores/${store.id}`}
+                    href={`/gian-hang/${store.id}`}
                     role="option"
                     aria-selected="false"
                   >

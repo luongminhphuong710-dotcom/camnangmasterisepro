@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src next.config.ts tailwind.config.ts eslint.config.mjs",
+    "lint": "eslint src next.config.ts tailwind.config.ts eslint.config.mjs && node scripts/check-text-encoding.mjs",
     "db:push": "drizzle-kit push",
     "db:migrate-data": "tsx scripts/migrate-data-to-neon.ts"
   },

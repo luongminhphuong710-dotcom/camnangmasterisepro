@@ -1,16 +1,18 @@
 import { Suspense } from "react";
 import { SectionHeading } from "@/components/SectionHeading";
-import { StoresClient } from "@/app/stores/StoresClient";
+import { StoresClient } from "@/app/gian-hang/StoresClient";
 import { getSiteData } from "@/lib/runtime-data";
+import { seoMetadata } from "@/lib/seo";
 
 type StoresPageProps = {
   searchParams: Promise<{ category?: string; project?: string }>;
 };
 
-export const metadata = {
-  title: "Gian hàng",
-  description: "Tìm kiếm gian hàng Masterise theo dự án và loại dịch vụ.",
-};
+export const metadata = seoMetadata({
+  title: "Gian hàng Masterise",
+  description: "Tìm kiếm gian hàng, dịch vụ và tiện ích cư dân Masterise theo dự án, danh mục và nhu cầu sử dụng.",
+  path: "/gian-hang",
+});
 
 export const dynamic = "force-dynamic";
 

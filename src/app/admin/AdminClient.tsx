@@ -10,6 +10,7 @@ import {
   Copy,
   Eye,
   FolderOpen,
+  Home,
   ImagePlus,
   LayoutDashboard,
   Loader2,
@@ -70,10 +71,14 @@ type ReviewImageItem = {
   name: string;
   url: string;
 };
-type CmsValue = string | number | string[] | VoucherItem[] | ReviewItem[] | undefined;
+type ProjectOverviewItem = {
+  label: string;
+  value: string;
+};
+type CmsValue = string | number | string[] | VoucherItem[] | ReviewItem[] | ProjectOverviewItem[] | undefined;
 type CmsItem = Record<string, CmsValue>;
 type ListNavKey = "stores" | "projects" | "news";
-type NavKey = ListNavKey | "categories" | "permissions";
+type NavKey = ListNavKey | "home" | "categories" | "permissions";
 type ViewMode = "list" | "view" | "edit";
 type StatusType = "success" | "error" | "loading";
 type ToastItem = { id: number; type: "success" | "error"; message: string };
@@ -83,6 +88,7 @@ type SortDirection = "asc" | "desc";
 
 type SiteData = {
   fallbackImage: string;
+  homeSettings: CmsItem;
   regionMeta: Record<string, { label?: string; name?: string }>;
   projects: CmsItem[];
   storeCategories: CmsItem[];
@@ -109,6 +115,7 @@ type FieldConfig = {
     | "mapembed"
     | "richtext"
     | "tags"
+    | "overview"
     | "readonly"
     | "note";
   helper?: string;
@@ -145,6 +152,7 @@ type AdminClientProps = {
 };
 
 const navItems: Array<{ key: NavKey; label: string; icon: typeof Store }> = [
+  { key: "home", label: "Trang home", icon: Home },
   { key: "stores", label: "Gian hàng", icon: Store },
   { key: "projects", label: "Dự án", icon: LayoutDashboard },
   { key: "news", label: "Tin tức", icon: Newspaper },
@@ -173,6 +181,9 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
+  const [projectRegionFilter, setProjectRegionFilter] = useState("");
+  const [projectCityFilter, setProjectCityFilter] = useState("");
+  const [projectSegmentFilter, setProjectSegmentFilter] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
@@ -216,9 +227,13 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
       if (projectFilter) {
         items = items.filter((item) => (projectFilter === "__none" ? !stringValue(item.projectId) : stringValue(item.projectId) === projectFilter));
       }
+    } else if (listSection === "projects") {
+      if (projectRegionFilter) items = items.filter((item) => stringValue(item.region) === projectRegionFilter);
+      if (projectCityFilter) items = items.filter((item) => stringValue(item.city) === projectCityFilter);
+      if (projectSegmentFilter) items = items.filter((item) => stringValue(item.segment) === projectSegmentFilter);
     }
     return sortItems(items, sortBySection[listSection]);
-  }, [collection, listSection, query, sortBySection, categoryFilter, projectFilter]);
+  }, [collection, listSection, query, sortBySection, categoryFilter, projectFilter, projectRegionFilter, projectCityFilter, projectSegmentFilter]);
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / ITEMS_PER_PAGE));
   const currentPage = Math.min(pageBySection[listSection] || 1, totalPages);
   const pageStartIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -375,7 +390,10 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     setQuery("");
     setCategoryFilter("");
     setProjectFilter("");
-    if (itemId && section !== "permissions") {
+    setProjectRegionFilter("");
+    setProjectCityFilter("");
+    setProjectSegmentFilter("");
+    if (itemId && section !== "permissions" && section !== "home") {
       setSelectedIds((current) => ({ ...current, [section]: itemId }));
     }
     window.history.pushState(null, "", adminPath(section, nextMode, itemId));
@@ -466,6 +484,18 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
       setSelectedIds((current) => ({ ...current, [listSection]: nextIdValue }));
       window.history.replaceState(null, "", adminPath(listSection, mode, nextIdValue));
     }
+    setIsDirty(true);
+  }
+
+  function updateHomeSetting(key: string, value: CmsValue) {
+    if (!canWrite) return;
+    setData((current) => ({
+      ...current,
+      homeSettings: {
+        ...current.homeSettings,
+        [key]: value,
+      },
+    }));
     setIsDirty(true);
   }
 
@@ -579,7 +609,17 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
             <h1 className="text-2xl font-extrabold">{sectionTitle(activeNav)}</h1>
           </header>
 
-          {activeNav === "permissions" ? (
+          {activeNav === "home" ? (
+            <HomeSettingsPanel
+              settings={data.homeSettings}
+              token={session.token}
+              canWrite={canWrite}
+              isBusy={isBusy}
+              isDirty={isDirty}
+              onChange={updateHomeSetting}
+              onSave={() => void saveData()}
+            />
+          ) : activeNav === "permissions" ? (
             <PermissionsPanel session={session} pushToast={pushToast} />
           ) : activeNav === "categories" ? (
             <CategoriesPanel
@@ -663,6 +703,42 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                         onChange={(value) => {
                           setCategoryFilter(stringValue(value));
                           setPageBySection((current) => ({ ...current, news: 1 }));
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : activeNav === "projects" ? (
+                  <>
+                    <div className="w-[200px]">
+                      <CustomSelect
+                        disabled={false}
+                        options={[{ value: "", label: "Tất cả miền" }, ...regionOptions(data)]}
+                        value={projectRegionFilter}
+                        onChange={(value) => {
+                          setProjectRegionFilter(stringValue(value));
+                          setPageBySection((current) => ({ ...current, projects: 1 }));
+                        }}
+                      />
+                    </div>
+                    <div className="w-[200px]">
+                      <CustomSelect
+                        disabled={false}
+                        options={[{ value: "", label: "Tất cả tỉnh / thành" }, ...projectCityOptions(data)]}
+                        value={projectCityFilter}
+                        onChange={(value) => {
+                          setProjectCityFilter(stringValue(value));
+                          setPageBySection((current) => ({ ...current, projects: 1 }));
+                        }}
+                      />
+                    </div>
+                    <div className="w-[200px]">
+                      <CustomSelect
+                        disabled={false}
+                        options={[{ value: "", label: "Tất cả phân khúc" }, ...projectSegmentOptions(data)]}
+                        value={projectSegmentFilter}
+                        onChange={(value) => {
+                          setProjectSegmentFilter(stringValue(value));
+                          setPageBySection((current) => ({ ...current, projects: 1 }));
                         }}
                       />
                     </div>
@@ -797,7 +873,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                       onChange={updateSelectedItem}
                     />
                   ) : (
-                    <div className={`grid gap-4 ${listSection === "news" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
+                    <div className={`grid gap-4 ${listSection === "news" || listSection === "projects" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                       {fieldsFor(listSection, data).map((field) => (
                         <FieldEditor
                           key={field.key}
@@ -831,7 +907,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                   onChange={() => {}}
                 />
               ) : (
-                <DetailView section={listSection} item={selectedItem} data={data} />
+                <DetailView section={listSection} item={selectedItem} data={data} token={session.token} />
               )}
             </section>
           ) : (
@@ -847,6 +923,135 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
         </section>
       </div>
     </main>
+  );
+}
+
+function HomeSettingsPanel({
+  settings,
+  token,
+  canWrite,
+  isBusy,
+  isDirty,
+  onChange,
+  onSave,
+}: {
+  settings: CmsItem;
+  token: string;
+  canWrite: boolean;
+  isBusy: boolean;
+  isDirty: boolean;
+  onChange: (key: string, value: CmsValue) => void;
+  onSave: () => void;
+}) {
+  const inputClass =
+    "min-h-11 rounded-lg border border-masterise-line px-3 text-sm outline-none focus:border-masterise-primary disabled:bg-masterise-surface disabled:text-masterise-muted";
+
+  return (
+    <section className="rounded-lg border border-masterise-line bg-white p-4 shadow-sm md:p-5">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-masterise-line pb-4">
+        <div>
+          <p className="text-xs font-bold uppercase text-masterise-primary">Cấu hình trang chủ</p>
+          <h2 className="text-2xl font-extrabold">Trang home</h2>
+          <p className="mt-2 text-sm leading-6 text-masterise-muted">
+            Chỉnh logo, SEO meta và ảnh head banner đang hiển thị ở trang chủ.
+          </p>
+        </div>
+        {canWrite ? (
+          <button className="primary-button" type="button" onClick={onSave} disabled={isBusy || !isDirty}>
+            {isBusy ? <Loader2 className="animate-spin" size={18} aria-hidden /> : <Save size={18} aria-hidden />}
+            Lưu
+          </button>
+        ) : null}
+      </div>
+
+      <div className="grid gap-5">
+        <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-3">
+          <div className="md:col-span-3">
+            <h3 className="text-lg font-extrabold text-masterise-ink">SEO meta</h3>
+          </div>
+
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink md:col-span-3">
+            Meta title
+            <input
+              className={inputClass}
+              disabled={!canWrite}
+              value={stringValue(settings.metaTitle)}
+              onChange={(event) => onChange("metaTitle", event.target.value)}
+            />
+          </label>
+
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink md:col-span-3">
+            Meta description
+            <textarea
+              className={`${inputClass} min-h-[96px] py-3`}
+              disabled={!canWrite}
+              rows={3}
+              value={stringValue(settings.metaDescription)}
+              onChange={(event) => onChange("metaDescription", event.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-extrabold text-masterise-ink">Logo</h3>
+            <p className="mt-1 text-sm leading-6 text-masterise-muted">
+              Header và footer dùng 2 logo riêng. Nếu bỏ trống, website dùng ký hiệu CM mặc định.
+            </p>
+          </div>
+
+          <div className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            <span>Logo header</span>
+            <ImageUploadField
+              compact
+              disabled={!canWrite}
+              token={token}
+              value={stringValue(settings.headerLogo || settings.logo)}
+              onChange={(value) => onChange("headerLogo", value)}
+            />
+            <small className="text-xs font-normal leading-5 text-masterise-muted">Logo hiển thị trên thanh header.</small>
+          </div>
+
+          <div className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            <span>Logo footer</span>
+            <ImageUploadField
+              compact
+              disabled={!canWrite}
+              token={token}
+              value={stringValue(settings.footerLogo || settings.logo)}
+              onChange={(value) => onChange("footerLogo", value)}
+            />
+            <small className="text-xs font-normal leading-5 text-masterise-muted">Logo hiển thị ở footer.</small>
+          </div>
+        </div>
+
+        <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4">
+          <div>
+            <h3 className="text-lg font-extrabold text-masterise-ink">Ảnh head banner</h3>
+            <p className="mt-1 text-sm leading-6 text-masterise-muted">Ảnh banner đầu trang home, nên ưu tiên ảnh ngang rộng.</p>
+          </div>
+
+          <div className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            <span>Ảnh head banner</span>
+            <ImageUploadField
+              compact
+              disabled={!canWrite}
+              token={token}
+              value={stringValue(settings.headBannerImage)}
+              onChange={(value) => onChange("headBannerImage", value)}
+            />
+          </div>
+        </div>
+        {canWrite ? (
+          <div className="flex justify-end border-t border-masterise-line pt-4">
+            <button className="primary-button" type="button" onClick={onSave} disabled={isBusy || !isDirty}>
+              {isBusy ? <Loader2 className="animate-spin" size={18} aria-hidden /> : <Save size={18} aria-hidden />}
+              Lưu
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </section>
   );
 }
 
@@ -1444,92 +1649,90 @@ function PermissionPill({ enabled, label }: { enabled: boolean; label: string })
   );
 }
 
-function DetailView({ section, item, data }: { section: NavKey; item: CmsItem; data: SiteData }) {
-  if (section === "news") {
-    const newsDetails = [
-      ["ID đường dẫn", stringValue(item.id)],
-      ["Tiêu đề", stringValue(item.title)],
-      ["Dự án", projectName(data, item.projectId)],
-      ["Miền", regionLabel(data, item.region)],
-      ["Ngày đăng", stringValue(item.date)],
-      ["Chuyên mục", stringValue(item.category)],
-      ["Hashtag", arrayToText(item.hashtags, "tags")],
-      ["Thời gian tạo", formatCmsDate(item.createdAt)],
-      ["Update mới nhất", formatCmsDate(item.updatedAt)],
-      ["Ảnh đại diện", stringValue(item.image)],
-      ["Mô tả ngắn", stringValue(item.excerpt)],
-      ["Nội dung bài viết", richTextPreview(item.contentHtml) || arrayToText(item.content, "paragraphs")],
-    ];
-
-    return (
-      <div className="grid gap-3 md:grid-cols-2">
-        {newsDetails.map(([label, value]) => (
-          <div
-            key={label}
-            className={`rounded-lg border border-masterise-line bg-masterise-surface p-4 ${
-              String(value).length > 90 ? "md:col-span-2" : ""
-            }`}
-          >
-            <span className="block text-xs font-bold uppercase text-masterise-muted">{label}</span>
-            <strong className="mt-2 block break-words text-sm leading-6 text-masterise-ink">{value || "-"}</strong>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  const details =
-    section === "stores"
-      ? [
-          ["ID đường dẫn", stringValue(item.id)],
-          ["Tên gian hàng", stringValue(item.name)],
-          ["Dự án", projectName(data, item.projectId)],
-          ["Danh mục", categoryLabel(data, item.category)],
-          ["Địa chỉ", stringValue(item.floor)],
-          ["Giờ hoạt động", stringValue(item.hours)],
-          ["Số liên hệ", stringValue(item.phone)],
-          ["Link iframe Google Maps", stringValue(item.mapEmbedUrl)],
-          ["Thông tin chi tiết", richTextPreview(item.detailContent)],
-          ["Đánh giá", stringValue(item.rating)],
-          ["Số lượt đánh giá", stringValue(item.reviewCount)],
-          ["Thời gian tạo", formatCmsDate(item.createdAt)],
-          ["Update mới nhất", formatCmsDate(item.updatedAt)],
-          ["Ảnh đại diện", stringValue(item.image)],
-          ["Mô tả ngắn", stringValue(item.note)],
-          ["Ưu đãi", vouchersSummary(item.vouchers)],
-          ["Đánh giá chi tiết", reviewsSummary(item.reviews)],
-        ]
-      : [
-          ["ID đường dẫn", stringValue(item.id)],
-          ["Tên dự án", stringValue(item.name)],
-          ["Miền", regionLabel(data, item.region)],
-          ["Tỉnh / thành phố", stringValue(item.city)],
-          ["Vị trí", stringValue(item.location)],
-          ["Phân khúc", stringValue(item.segment)],
-          ["Trạng thái", stringValue(item.status)],
-          ["Thời gian tạo", formatCmsDate(item.createdAt)],
-          ["Update mới nhất", formatCmsDate(item.updatedAt)],
-          ["Ảnh đại diện", stringValue(item.image)],
-          ["Link nguồn Masterise", stringValue(item.source)],
-          ["Mô tả chính", stringValue(item.summary)],
-          ["Điểm cần theo dõi", arrayToText(item.highlights, "lines")],
-        ];
+function DetailView({ section, item, data, token }: { section: ListNavKey; item: CmsItem; data: SiteData; token: string }) {
+  const fields = fieldsFor(section, data);
+  const fieldByKey = new Map(fields.map((field) => [field.key, field]));
+  const sections = detailSectionsFor(section);
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {details.map(([label, value]) => (
-        <div
-          key={label}
-          className={`rounded-lg border border-masterise-line bg-masterise-surface p-4 ${
-            String(value).length > 90 ? "md:col-span-2" : ""
-          }`}
-        >
-          <span className="block text-xs font-bold uppercase text-masterise-muted">{label}</span>
-          <strong className="mt-2 block break-words text-sm leading-6 text-masterise-ink">{value || "-"}</strong>
-        </div>
+    <div className="grid gap-5">
+      {sections.map((sectionConfig) => (
+        <section key={sectionConfig.title} className="rounded-lg border border-masterise-line bg-white shadow-sm">
+          <div className="border-b border-masterise-line bg-masterise-surface px-4 py-3">
+            <h3 className="text-base font-extrabold text-masterise-ink">{sectionConfig.title}</h3>
+            <p className="mt-1 text-sm text-masterise-muted">{sectionConfig.description}</p>
+          </div>
+          <div className="grid gap-4 p-4 md:grid-cols-3">
+            {sectionConfig.keys.map((key) => {
+              const field = fieldByKey.get(key);
+              if (!field) return null;
+
+              return (
+                <FieldEditor
+                  key={field.key}
+                  field={field}
+                  item={item}
+                  token={token}
+                  value={item[field.key]}
+                  disabled
+                  onChange={() => {}}
+                />
+              );
+            })}
+          </div>
+        </section>
       ))}
     </div>
   );
+}
+
+function detailSectionsFor(section: ListNavKey) {
+  if (section === "news") {
+    return [
+      {
+        title: "Thông tin cơ bản",
+        description: "Ảnh, tiêu đề, mô tả, đường dẫn, chuyên mục và phạm vi hiển thị.",
+        keys: ["image", "title", "excerpt", "id", "category", "projectId", "region"],
+      },
+      {
+        title: "Nội dung bài viết",
+        description: "Nội dung rich text và hashtag đang hiển thị trên client.",
+        keys: ["contentHtml", "hashtags"],
+      },
+      {
+        title: "Thời gian hệ thống",
+        description: "Ngày tạo và thời điểm cập nhật gần nhất được ghi tự động.",
+        keys: ["createdAt", "updatedAt"],
+      },
+    ];
+  }
+
+  if (section === "projects") {
+    return [
+      {
+        title: "Thông tin cơ bản",
+        description: "Ảnh, tên dự án, mô tả, đường dẫn và phân loại dự án.",
+        keys: ["image", "name", "summary", "id", "segment"],
+      },
+      {
+        title: "Vị trí",
+        description: "Tỉnh / thành phố, vị trí, địa chỉ hiển thị và bản đồ Google Maps.",
+        keys: ["region", "city", "location", "address", "mapEmbedUrl"],
+      },
+      {
+        title: "Thông tin chi tiết",
+        description: "Các dòng tổng quan và dịch vụ tiện ích nổi bật hiển thị trên client.",
+        keys: ["overviewItems", "highlights"],
+      },
+      {
+        title: "Thời gian hệ thống",
+        description: "Ngày tạo và thời điểm cập nhật gần nhất được ghi tự động.",
+        keys: ["createdAt", "updatedAt"],
+      },
+    ];
+  }
+
+  return [];
 }
 
 function TableSummary({
@@ -1748,7 +1951,7 @@ function StoresTable({
                     <div className="flex justify-end gap-2">
                       <a
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-masterise-line text-masterise-primary transition hover:border-masterise-primary hover:bg-white"
-                        href={`/stores/${id}`}
+                        href={`/gian-hang/${id}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={(event) => event.stopPropagation()}
@@ -1845,7 +2048,7 @@ function NewsTable({
         onPageChange={onPageChange}
       />
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1040px] border-collapse text-left text-sm">
           <thead className="bg-masterise-surface text-xs uppercase text-masterise-muted">
             <tr>
               <th className="px-4 py-3">Bài viết</th>
@@ -1883,7 +2086,7 @@ function NewsTable({
                       </div>
                       <span className="min-w-0">
                         <strong className="block truncate text-masterise-ink">{stringValue(item.title) || id}</strong>
-                        <span className="block truncate text-xs text-masterise-muted">/news/{id}</span>
+                        <span className="block truncate text-xs text-masterise-muted">/tin-tuc/{id}</span>
                       </span>
                     </div>
                   </td>
@@ -1896,7 +2099,7 @@ function NewsTable({
                     <div className="flex justify-end gap-2">
                       <a
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-masterise-line text-masterise-primary transition hover:border-masterise-primary hover:bg-white"
-                        href={`/news/${id}`}
+                        href={`/tin-tuc/${id}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={(event) => event.stopPropagation()}
@@ -1996,7 +2199,6 @@ function ProjectsTable({
               <th className="px-4 py-3">Miền</th>
               <th className="px-4 py-3">Tỉnh / thành</th>
               <th className="px-4 py-3">Phân khúc</th>
-              <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3">
                 <SortHeader activeSort={sort} label="Thời gian tạo" sortKey="createdAt" onSort={onSort} />
               </th>
@@ -2017,19 +2219,18 @@ function ProjectsTable({
                 >
                   <td className="px-4 py-3">
                     <strong className="block text-masterise-ink">{stringValue(item.name) || id}</strong>
-                    <span className="text-xs text-masterise-muted">/projects/{id}</span>
+                    <span className="text-xs text-masterise-muted">/du-an/{id}</span>
                   </td>
                   <td className="px-4 py-3">{regionLabel(data, item.region)}</td>
                   <td className="px-4 py-3">{stringValue(item.city) || "-"}</td>
                   <td className="px-4 py-3">{stringValue(item.segment) || "-"}</td>
-                  <td className="px-4 py-3">{stringValue(item.status) || "-"}</td>
                   <td className="px-4 py-3 text-xs font-semibold text-masterise-muted">{formatCmsDate(item.createdAt)}</td>
                   <td className="px-4 py-3 text-xs font-semibold text-masterise-muted">{formatCmsDate(item.updatedAt)}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
                       <a
                         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-masterise-line text-masterise-primary transition hover:border-masterise-primary hover:bg-white"
-                        href={`/projects/${id}`}
+                        href={`/du-an/${id}`}
                         target="_blank"
                         rel="noreferrer"
                         onClick={(event) => event.stopPropagation()}
@@ -2714,6 +2915,16 @@ function FieldEditor({
     );
   }
 
+  if (field.type === "overview") {
+    return (
+      <div className={className}>
+        <span>{field.label}</span>
+        <ProjectOverviewEditor value={overviewItemsValue(value)} disabled={disabled} onChange={onChange} />
+        {field.helper ? <small className="text-xs font-normal leading-5 text-masterise-muted">{field.helper}</small> : null}
+      </div>
+    );
+  }
+
   if (field.type === "readonly") {
     return (
       <div className={className}>
@@ -2761,6 +2972,7 @@ function FieldEditor({
 }
 
 function fieldClassName(field: FieldConfig) {
+  if (field.key === "address") return "col-span-full";
   if (field.span === 3) return "md:col-span-3";
   if (field.span === 2 || field.full) return "md:col-span-2";
   return "";
@@ -3163,6 +3375,106 @@ function TagPickerEditor({
   );
 }
 
+function ProjectOverviewEditor({
+  disabled,
+  value,
+  onChange,
+}: {
+  disabled: boolean;
+  value: ProjectOverviewItem[];
+  onChange: (value: CmsValue) => void;
+}) {
+  const rows = value.length ? value : [];
+
+  function updateRow(index: number, key: keyof ProjectOverviewItem, nextValue: string) {
+    onChange(rows.map((row, currentIndex) => (currentIndex === index ? { ...row, [key]: nextValue } : row)));
+  }
+
+  function addRow() {
+    onChange([...rows, { label: "", value: "" }]);
+  }
+
+  function removeRow(index: number) {
+    onChange(rows.filter((_, currentIndex) => currentIndex !== index));
+  }
+
+  function moveRow(index: number, direction: -1 | 1) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= rows.length) return;
+    const nextRows = [...rows];
+    [nextRows[index], nextRows[targetIndex]] = [nextRows[targetIndex], nextRows[index]];
+    onChange(nextRows);
+  }
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-masterise-line bg-masterise-surface p-3">
+      {rows.length ? (
+        <div className="grid gap-2">
+          {rows.map((row, index) => (
+            <div key={index} className="grid gap-2 rounded-lg border border-masterise-line bg-white p-2 md:grid-cols-[minmax(160px,0.35fr)_minmax(0,1fr)_92px]">
+              <input
+                className="min-h-10 rounded-md border border-masterise-line px-3 text-sm outline-none focus:border-masterise-primary disabled:bg-masterise-surface disabled:text-masterise-muted"
+                disabled={disabled}
+                placeholder="Tiêu đề"
+                value={row.label}
+                onChange={(event) => updateRow(index, "label", event.target.value)}
+              />
+              <input
+                className="min-h-10 rounded-md border border-masterise-line px-3 text-sm outline-none focus:border-masterise-primary disabled:bg-masterise-surface disabled:text-masterise-muted"
+                disabled={disabled}
+                placeholder="Nội dung"
+                value={row.value}
+                onChange={(event) => updateRow(index, "value", event.target.value)}
+              />
+              <div className="grid grid-cols-[1fr_1fr] gap-1">
+                <button
+                  className="grid h-10 w-10 place-items-center rounded-md border border-masterise-line text-masterise-primary transition hover:bg-masterise-soft disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  disabled={disabled || index === 0}
+                  aria-label="Di chuyển dòng lên"
+                  title="Di chuyển lên"
+                  onClick={() => moveRow(index, -1)}
+                >
+                  <ArrowUp size={16} aria-hidden />
+                </button>
+                <button
+                  className="grid h-10 w-10 place-items-center rounded-md border border-masterise-line text-masterise-primary transition hover:bg-masterise-soft disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  disabled={disabled || index === rows.length - 1}
+                  aria-label="Di chuyển dòng xuống"
+                  title="Di chuyển xuống"
+                  onClick={() => moveRow(index, 1)}
+                >
+                  <ArrowDown size={16} aria-hidden />
+                </button>
+                <button
+                  className="col-span-2 grid h-10 w-full place-items-center rounded-md border border-red-200 text-red-500 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  type="button"
+                  disabled={disabled}
+                  aria-label="Xóa dòng tổng quan"
+                  title="Xóa dòng"
+                  onClick={() => removeRow(index)}
+                >
+                  <Trash2 size={16} aria-hidden />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="rounded-lg border border-dashed border-masterise-line bg-white p-4 text-sm font-normal text-masterise-muted">
+          Chưa có dòng tổng quan nào.
+        </p>
+      )}
+
+      <button className="secondary-button w-fit" type="button" disabled={disabled} onClick={addRow}>
+        <Plus size={16} aria-hidden />
+        Thêm dòng
+      </button>
+    </div>
+  );
+}
+
 function ImageUploadField({
   disabled,
   token,
@@ -3516,6 +3828,13 @@ async function createLocalImagePreview(file: File) {
 async function uploadPendingCmsImages(payload: SiteData, token: string): Promise<SiteData> {
   const uploadedByPreview = new Map<string, string>();
   const nextData = clone(payload) as SiteData;
+  const nextHomeSettings = {
+    ...nextData.homeSettings,
+    logo: await uploadPendingImage(stringValue(nextData.homeSettings.logo), token, uploadedByPreview),
+    headerLogo: await uploadPendingImage(stringValue(nextData.homeSettings.headerLogo || nextData.homeSettings.logo), token, uploadedByPreview),
+    footerLogo: await uploadPendingImage(stringValue(nextData.homeSettings.footerLogo || nextData.homeSettings.logo), token, uploadedByPreview),
+    headBannerImage: await uploadPendingImage(stringValue(nextData.homeSettings.headBannerImage), token, uploadedByPreview),
+  };
   const nextStores = [];
 
   for (const store of nextData.stores) {
@@ -3536,6 +3855,7 @@ async function uploadPendingCmsImages(payload: SiteData, token: string): Promise
 
   return {
     ...nextData,
+    homeSettings: nextHomeSettings,
     stores: nextStores,
   };
 }
@@ -3876,17 +4196,33 @@ function fieldsFor(section: NavKey, data: SiteData): FieldConfig[] {
   }
 
   return [
-    { key: "id", label: "ID đường dẫn", type: "text", helper: "Ví dụ: masteri-grand-coast." },
-    { key: "name", label: "Tên dự án", type: "text" },
+    { key: "image", label: "Ảnh đại diện", type: "smallimage", span: 3, helper: "Preview tỉ lệ 16:9 như ngoài client, hiển thị nhỏ để dễ biên tập." },
+    { key: "name", label: "Tên dự án", type: "text", span: 3 },
+    { key: "summary", label: "Mô tả chính", type: "textarea", span: 3, rows: 3 },
+    { key: "id", label: "ID đường dẫn", type: "text", span: 3, helper: "Ví dụ: masteri-grand-coast." },
+    { key: "segment", label: "Phân khúc", type: "select", options: projectSegmentOptions(data) },
     { key: "region", label: "Miền", type: "select", options: regionOptions(data) },
     { key: "city", label: "Tỉnh / thành phố", type: "text" },
-    { key: "location", label: "Vị trí", type: "text", full: true },
-    { key: "segment", label: "Phân khúc", type: "text" },
-    { key: "status", label: "Trạng thái", type: "text" },
-    { key: "image", label: "Ảnh đại diện", type: "image", full: true },
-    { key: "source", label: "Link nguồn Masterise", type: "url", full: true },
-    { key: "summary", label: "Mô tả chính", type: "textarea", full: true, rows: 5 },
-    { key: "highlights", label: "Điểm cần theo dõi", type: "array", mode: "lines", full: true, rows: 5 },
+    { key: "location", label: "Vị trí", type: "text" },
+    { key: "address", label: "Địa chỉ hiển thị", type: "text", span: 3, helper: "Nếu bỏ trống, client sẽ tự ghép Vị trí + Tỉnh / thành phố." },
+    {
+      key: "mapEmbedUrl",
+      label: "Link iframe Google Maps",
+      type: "mapembed",
+      span: 3,
+      rows: 3,
+      helper: "Dán iframe Google Maps hoặc phần src. Nếu bỏ trống, client sẽ tự tìm bản đồ theo tên dự án và địa chỉ.",
+    },
+    {
+      key: "overviewItems",
+      label: "Tổng quan dạng dòng",
+      type: "overview",
+      span: 3,
+      helper: "Thêm các dòng thông tin gồm tiêu đề và nội dung, ví dụ: Tên dự án, Vị trí, Nhà phát triển, Quy mô dự án.",
+    },
+    { key: "highlights", label: "Dịch vụ tiện ích nổi bật", type: "array", mode: "lines", span: 3, rows: 4 },
+    { key: "createdAt", label: "Ngày tạo", type: "readonly", format: "datetime" },
+    { key: "updatedAt", label: "Ngày update chỉnh sửa", type: "readonly", format: "datetime" },
   ];
 }
 
@@ -3922,16 +4258,43 @@ function normalizeData(data: unknown): SiteData {
     fallbackImage:
       source.fallbackImage ||
       "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80",
+    homeSettings: normalizeHomeSettings(source.homeSettings),
     regionMeta: source.regionMeta || {
       all: { label: "Tất cả", name: "Tất cả dự án" },
       north: { label: "Miền Bắc", name: "Dự án miền Bắc" },
       central: { label: "Miền Trung", name: "Dự án miền Trung" },
       south: { label: "Miền Nam", name: "Dự án miền Nam" },
     },
-    projects: Array.isArray(source.projects) ? source.projects : [],
+    projects: Array.isArray(source.projects) ? source.projects.map(normalizeProjectItem) : [],
     storeCategories: normalizeStoreCategories(Array.isArray(source.storeCategories) ? source.storeCategories : []),
     stores: Array.isArray(source.stores) ? source.stores.map(normalizeStoreItem) : [],
     newsItems: Array.isArray(source.newsItems) ? source.newsItems.map(normalizeNewsItem) : [],
+  };
+}
+
+function normalizeHomeSettings(value: unknown): CmsItem {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? (value as CmsItem) : {};
+  return {
+    logo: stringValue(source.logo),
+    headerLogo: stringValue(source.headerLogo || source.logo),
+    footerLogo: stringValue(source.footerLogo || source.logo),
+    metaTitle: stringValue(source.metaTitle) || "Cẩm Nang Masterise | Nhà tôi ở Masterise",
+    metaDescription:
+      stringValue(source.metaDescription) ||
+      "Cẩm nang cư dân Masterise: tra cứu dự án theo miền, thông tin dự án, gian hàng và tin tức cần biết.",
+    headBannerImage:
+      stringValue(source.headBannerImage) ||
+      "https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg",
+  };
+}
+
+function normalizeProjectItem(item: CmsItem): CmsItem {
+  return {
+    ...item,
+    address: stringValue(item.address),
+    mapEmbedUrl: stringValue(item.mapEmbedUrl),
+    overviewItems: overviewItemsValue(item.overviewItems),
+    highlights: Array.isArray(item.highlights) ? item.highlights.map((value) => String(value ?? "").trim()).filter(Boolean) : [],
   };
 }
 
@@ -4011,11 +4374,14 @@ function createProject(data: SiteData): CmsItem {
     region: "north",
     city: "",
     location: "",
+    address: "",
+    mapEmbedUrl: "",
     segment: "",
     status: "",
     image: "",
     source: "",
     summary: "",
+    overviewItems: [],
     highlights: [],
     createdAt: timestamp,
     updatedAt: timestamp,
@@ -4063,6 +4429,18 @@ function optionalProjectOptions(data: SiteData) {
   return [{ value: "", label: "Không chọn dự án" }, ...projectOptions(data)];
 }
 
+function projectCityOptions(data: SiteData) {
+  return uniqueStrings(data.projects.map((project) => stringValue(project.city)))
+    .filter(Boolean)
+    .map((city) => ({ value: city, label: city }));
+}
+
+function projectSegmentOptions(data: SiteData) {
+  return uniqueStrings(data.projects.map((project) => stringValue(project.segment)))
+    .filter(Boolean)
+    .map((segment) => ({ value: segment, label: segment }));
+}
+
 function categoryOptions(data: SiteData) {
   return data.storeCategories
     .filter((category) => stringValue(category.id) !== "all")
@@ -4097,6 +4475,7 @@ function uniqueStrings(values: string[]) {
 }
 
 function sectionTitle(section: NavKey) {
+  if (section === "home") return "Chỉnh trang home";
   if (section === "stores") return "Quản lý gian hàng";
   if (section === "projects") return "Quản lý dự án";
   if (section === "news") return "Quản lý tin tức";
@@ -4137,6 +4516,20 @@ function arrayToText(value: CmsValue, mode: ArrayMode) {
 
 function tagsValue(value: CmsValue) {
   return Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
+}
+
+function overviewItemsValue(value: CmsValue): ProjectOverviewItem[] {
+  return Array.isArray(value)
+    ? value
+        .map((item) => {
+          if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+          const source = item as { label?: unknown; value?: unknown };
+          const label = String(source.label ?? "").trim();
+          const text = String(source.value ?? "").trim();
+          return { label, value: text };
+        })
+        .filter((item): item is ProjectOverviewItem => Boolean(item))
+    : [];
 }
 
 function textToArray(value: string, mode: ArrayMode) {
@@ -4181,14 +4574,6 @@ function vouchersValue(value: CmsValue): VoucherItem[] {
       expires: stringValue(item.expires),
       redeemCount: numberValue(stringValue(item.redeemCount)) || 0,
     }));
-}
-
-function vouchersSummary(value: CmsValue) {
-  const vouchers = vouchersValue(value);
-  if (!vouchers.length) return "Chưa có ưu đãi";
-  return vouchers
-    .map((voucher) => `${voucher.code || "NO-CODE"} - ${voucher.description || "Ưu đãi"}`)
-    .join("\n");
 }
 
 function createRandomReviewerName() {
@@ -4251,12 +4636,6 @@ function calculatedReviewStats(value: CmsValue) {
   return { rating: Number(rating.toFixed(1)), count: reviews.length };
 }
 
-function reviewsSummary(value: CmsValue) {
-  const reviews = reviewsValue(value);
-  if (!reviews.length) return "Chưa có đánh giá chi tiết";
-  return reviews.map((review) => `${review.name} - ${review.rating}/5`).join("\n");
-}
-
 function uniqueVoucherCode(vouchers: VoucherItem[]) {
   const existing = new Set(vouchers.map((voucher) => voucher.code));
   let index = vouchers.length + 1;
@@ -4300,14 +4679,6 @@ function sanitizeRichTextHtml(value: string) {
     .replace(/\s(?:on\w+|style)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
     .replace(/\s(href|src)=("|\')\s*javascript:[^"\']*\2/gi, "")
     .trim();
-}
-
-function richTextPreview(value: CmsValue) {
-  const text = sanitizeRichTextHtml(stringValue(value))
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return text || "Chưa có nội dung";
 }
 
 function googleMapsEmbedSrc(value?: string) {
@@ -4398,20 +4769,20 @@ function isoFromDisplayDate(value: string) {
 }
 
 function publicItemPath(section: ListNavKey, itemId: string) {
-  if (section === "stores") return `/stores/${itemId}`;
-  if (section === "news") return `/news/${itemId}`;
-  return `/projects/${itemId}`;
+  if (section === "stores") return `/gian-hang/${itemId}`;
+  if (section === "news") return `/tin-tuc/${itemId}`;
+  return `/du-an/${itemId}`;
 }
 
 function adminPath(section: NavKey, mode: ViewMode = "list", itemId = "") {
-  if (section === "permissions" || section === "categories") return `/admin/${section}`;
+  if (section === "home" || section === "permissions" || section === "categories") return `/admin/${section}`;
   if (mode === "list" || !itemId) return `/admin/${section}`;
   return `/admin/${section}/${encodeURIComponent(itemId)}${mode === "edit" ? "/edit" : ""}`;
 }
 
 function routeFromPath(pathname: string): { section: NavKey; mode: ViewMode; itemId: string } {
   const parts = pathname.split("/").filter(Boolean);
-  if (parts[1] === "permissions" || parts[1] === "categories") return { section: parts[1], mode: "list", itemId: "" };
+  if (parts[1] === "home" || parts[1] === "permissions" || parts[1] === "categories") return { section: parts[1], mode: "list", itemId: "" };
   const section = parts[1] === "projects" ? "projects" : parts[1] === "news" ? "news" : "stores";
   const itemId = parts[2] ? decodeURIComponent(parts[2]) : "";
   const mode = itemId ? (parts[3] === "edit" ? "edit" : "view") : "list";

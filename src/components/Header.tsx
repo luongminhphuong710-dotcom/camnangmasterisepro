@@ -6,12 +6,12 @@ import { Menu, X } from "lucide-react";
 import { useState } from "react";
 
 const navItems = [
-  { href: "/stores", label: "Gian hàng" },
-  { href: "/projects", label: "Dự án" },
-  { href: "/news", label: "Tin Tức" },
+  { href: "/gian-hang", label: "Gian hàng" },
+  { href: "/du-an", label: "Dự án" },
+  { href: "/tin-tuc", label: "Tin Tức" },
 ];
 
-export function Header() {
+export function Header({ logo = "" }: { logo?: string }) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -21,7 +21,12 @@ export function Header() {
   return (
     <header className="topbar">
       <Link className="brand" href="/" aria-label="Cẩm Nang Masterise">
-        <span className="brand-mark">CM</span>
+        {logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logo} alt="Cẩm Nang Masterise" className="brand-logo-image" />
+        ) : (
+          <span className="brand-mark">CM</span>
+        )}
       </Link>
 
       <button

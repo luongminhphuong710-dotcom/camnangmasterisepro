@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { camnangData } from "@/lib/data";
 import type { SiteData } from "@/lib/site-types";
+import { repairTextTree } from "@/lib/text-encoding";
 
 const LOCAL_DEMO_DIR = path.join(process.cwd(), ".local-demo");
 const LOCAL_DEMO_DATA_FILE = path.join(LOCAL_DEMO_DIR, "site-data.json");
@@ -30,7 +31,7 @@ export async function getLocalDemoSiteData(): Promise<SiteData> {
   }
 
   try {
-    return normalizeSiteData(JSON.parse(readFileSync(LOCAL_DEMO_DATA_FILE, "utf8")));
+    return normalizeSiteData(repairTextTree(JSON.parse(readFileSync(LOCAL_DEMO_DATA_FILE, "utf8"))));
   } catch {
     writeJson(LOCAL_DEMO_DATA_FILE, camnangData);
     return normalizeSiteData(camnangData);
@@ -86,16 +87,25 @@ function readUsersFile(filePath: string): LocalDemoUser[] {
 }
 
 function normalizeSiteData(value: Partial<SiteData>): SiteData {
+  const source = repairTextTree(value);
   return {
-    fallbackImage: value.fallbackImage || camnangData.fallbackImage,
-    regionMeta: value.regionMeta || camnangData.regionMeta,
-    projects: Array.isArray(value.projects) ? value.projects : [],
-    storeCategories: Array.isArray(value.storeCategories) ? value.storeCategories : [],
-    stores: Array.isArray(value.stores) ? value.stores : [],
-    newsItems: Array.isArray(value.newsItems) ? value.newsItems : [],
+    fallbackImage: source.fallbackImage || camnangData.fallbackImage,
+    homeSettings: {
+      logo: String(source.homeSettings?.logo || camnangData.homeSettings?.logo || "").trim(),
+      headerLogo: String(source.homeSettings?.headerLogo || source.homeSettings?.logo || camnangData.homeSettings?.headerLogo || "").trim(),
+      footerLogo: String(source.homeSettings?.footerLogo || source.homeSettings?.logo || camnangData.homeSettings?.footerLogo || "").trim(),
+      metaTitle: String(source.homeSettings?.metaTitle || camnangData.homeSettings?.metaTitle || "").trim(),
+      metaDescription: String(source.homeSettings?.metaDescription || camnangData.homeSettings?.metaDescription || "").trim(),
+      headBannerImage: String(source.homeSettings?.headBannerImage || camnangData.homeSettings?.headBannerImage || "").trim(),
+    },
+    regionMeta: source.regionMeta || camnangData.regionMeta,
+    projects: Array.isArray(source.projects) ? source.projects : [],
+    storeCategories: Array.isArray(source.storeCategories) ? source.storeCategories : [],
+    stores: Array.isArray(source.stores) ? source.stores : [],
+    newsItems: Array.isArray(source.newsItems) ? source.newsItems : [],
   };
 }
 
 function writeJson(filePath: string, value: unknown) {
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  writeFileSync(filePath, `${JSON.stringify(repairTextTree(value), null, 2)}\n`, "utf8");
 }

@@ -35,6 +35,7 @@ export function StoreHeroGallery({ images, storeName }: StoreHeroGalleryProps) {
           alt={`${storeName} ảnh ${activeIndex + 1}`}
           fill
           priority
+          fetchPriority="high"
           sizes="(min-width: 1024px) 60vw, 100vw"
           className="object-cover"
         />

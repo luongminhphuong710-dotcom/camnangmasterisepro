@@ -3,7 +3,7 @@ import { eq, getTableColumns, notInArray, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { uploadCmsImage } from "@/lib/cloudinary";
 import { db } from "@/lib/db/client";
-import { cmsUsers, newsItems, projects, storeCategories, stores } from "@/lib/db/schema";
+import { cmsUsers, newsItems, projects, siteSettings, storeCategories, stores } from "@/lib/db/schema";
 import {
   isLocalDemoMode,
   loadLocalDemoUsers,
@@ -12,6 +12,7 @@ import {
   saveLocalDemoUsers,
 } from "@/lib/local-demo-store";
 import { getSiteData } from "@/lib/runtime-data";
+import { repairTextTree } from "@/lib/text-encoding";
 
 export const runtime = "nodejs";
 
@@ -137,14 +138,17 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown; newsItems?: unknown }) {
-  const incomingStores = Array.isArray(data.stores) ? data.stores : [];
-  const incomingProjects = Array.isArray(data.projects) ? data.projects : [];
-  const incomingCategories = Array.isArray(data.storeCategories) ? data.storeCategories : [];
-  const incomingNewsItems = Array.isArray(data.newsItems) ? data.newsItems : [];
+async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown; newsItems?: unknown; homeSettings?: unknown }) {
+  const cleanedData = repairTextTree(data);
+  const incomingStores = Array.isArray(cleanedData.stores) ? cleanedData.stores : [];
+  const incomingProjects = Array.isArray(cleanedData.projects) ? cleanedData.projects : [];
+  const incomingCategories = Array.isArray(cleanedData.storeCategories) ? cleanedData.storeCategories : [];
+  const incomingNewsItems = Array.isArray(cleanedData.newsItems) ? cleanedData.newsItems : [];
+  const incomingHomeSettings = normalizeHomeSettings(cleanedData.homeSettings);
 
   if (isLocalDemoMode()) {
     await saveLocalDemoSiteData({
+      homeSettings: incomingHomeSettings,
       stores: incomingStores,
       projects: incomingProjects,
       storeCategories: incomingCategories,
@@ -153,7 +157,17 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
     return;
   }
 
+  await ensureProjectColumns();
   await ensureNewsItemsTable();
+  await ensureSiteSettingsTable();
+
+  await db
+    .insert(siteSettings)
+    .values({ key: "home", value: incomingHomeSettings, updatedAt: new Date().toISOString() })
+    .onConflictDoUpdate({
+      target: siteSettings.key,
+      set: { value: sql.raw("excluded.value"), updatedAt: sql.raw("excluded.updated_at") },
+    });
 
   if (incomingStores.length) {
     await db
@@ -198,6 +212,18 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
   }
 }
 
+function normalizeHomeSettings(value: unknown) {
+  const source = value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return {
+    logo: String(source.logo || "").trim(),
+    headerLogo: String(source.headerLogo || source.logo || "").trim(),
+    footerLogo: String(source.footerLogo || source.logo || "").trim(),
+    metaTitle: String(source.metaTitle || "").trim(),
+    metaDescription: String(source.metaDescription || "").trim(),
+    headBannerImage: String(source.headBannerImage || "").trim(),
+  };
+}
+
 async function ensureNewsItemsTable() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS news_items (
@@ -213,6 +239,25 @@ async function ensureNewsItemsTable() {
       content jsonb NOT NULL DEFAULT '[]'::jsonb,
       content_html text,
       created_at timestamp with time zone,
+      updated_at timestamp with time zone
+    )
+  `);
+}
+
+async function ensureProjectColumns() {
+  await db.execute(sql`
+    ALTER TABLE projects
+      ADD COLUMN IF NOT EXISTS address text,
+      ADD COLUMN IF NOT EXISTS map_embed_url text,
+      ADD COLUMN IF NOT EXISTS overview_items jsonb NOT NULL DEFAULT '[]'::jsonb
+  `);
+}
+
+async function ensureSiteSettingsTable() {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS site_settings (
+      key text PRIMARY KEY,
+      value jsonb NOT NULL DEFAULT '{}'::jsonb,
       updated_at timestamp with time zone
     )
   `);
@@ -563,7 +608,10 @@ function slugifyFileName(value: string) {
 function json(body: unknown, status = 200) {
   return NextResponse.json(body, {
     status,
-    headers: { "Cache-Control": "no-store" },
+    headers: {
+      "Cache-Control": "no-store",
+      "Content-Type": "application/json; charset=utf-8",
+    },
   });
 }
 

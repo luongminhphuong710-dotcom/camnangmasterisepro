@@ -11,9 +11,17 @@ export type Project = {
   image: string;
   source: string;
   summary: string;
+  address?: string;
+  mapEmbedUrl?: string;
+  overviewItems?: readonly ProjectOverviewItem[];
   highlights: readonly string[];
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type ProjectOverviewItem = {
+  label: string;
+  value: string;
 };
 
 export type StoreCategory = {
@@ -76,8 +84,18 @@ export type NewsItem = {
   updatedAt?: string;
 };
 
+export type SiteHomeSettings = {
+  logo?: string;
+  headerLogo?: string;
+  footerLogo?: string;
+  metaTitle?: string;
+  metaDescription?: string;
+  headBannerImage?: string;
+};
+
 export type SiteData = {
   fallbackImage: string;
+  homeSettings?: SiteHomeSettings;
   regionMeta: RegionMeta;
   projects: readonly Project[];
   storeCategories: readonly StoreCategory[];

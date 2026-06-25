@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { ArrowDownUp, Building2, ChevronDown, ChevronLeft, ChevronRight, FolderOpen, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NewsCard } from "@/components/NewsCard";
@@ -10,35 +10,46 @@ import { getProjectFromData } from "@/lib/site-utils";
 
 const pageSize = 12;
 
-type SortMode = "newest" | "oldest" | "popular";
+type SortMode = "newest" | "oldest";
 
-const viewCountById: Record<string, number> = {
-  "ky-nang-so-cuu-cu-dan-nhi": 2380,
-  "happy-aqua-kids-summer": 1960,
-  "gia-chinh-sach-masteri-grand-coast": 1740,
-  "wellness-masteri-waterfront": 1520,
-  "masteri-rivera-danang-nhip-song-moi": 1180,
-  "quoc-khanh-ngoi-nha-masterise": 980,
+type NewsClientProps = {
+  data: SiteData;
+  initialProjectId?: string;
 };
 
-export function NewsClient({ data }: { data: SiteData }) {
+export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) {
   const [query, setQuery] = useState("");
+  const initialProject = getProjectFromData(data, initialProjectId);
+  const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
   const [category, setCategory] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
+  const [isProjectOpen, setIsProjectOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isSortOpen, setIsSortOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const newsItems = data.newsItems;
 
+  const projectNewsItems = useMemo(() => {
+    if (projectId === "all") return newsItems;
+    return newsItems.filter((item) => item.projectId === projectId);
+  }, [newsItems, projectId]);
+
+  const projectOptions = useMemo(
+    () => [{ value: "all", label: "Tất cả dự án" }, ...data.projects.map((project) => ({ value: project.id, label: project.name }))],
+    [data.projects],
+  );
+  const currentProjectOption = projectOptions.find((item) => item.value === projectId) ?? projectOptions[0];
+
   const categoryOptions = useMemo(() => {
-    const categories = Array.from(new Set(newsItems.map((item) => item.category)));
+    const categories = Array.from(new Set(projectNewsItems.map((item) => item.category)));
     return [{ value: "all", label: "Tất cả" }, ...categories.map((item) => ({ value: item, label: item }))];
-  }, [newsItems]);
+  }, [projectNewsItems]);
+  const currentCategoryOption = categoryOptions.find((item) => item.value === category) ?? categoryOptions[0];
   const sortOptions: { value: SortMode; label: string }[] = [
     { value: "newest", label: "Mới nhất" },
     { value: "oldest", label: "Cũ nhất" },
-    { value: "popular", label: "Đọc nhiều" },
   ];
   const currentSortOption = sortOptions.find((item) => item.value === sortMode) ?? sortOptions[0];
 
@@ -46,7 +57,7 @@ export function NewsClient({ data }: { data: SiteData }) {
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
     if (!tokens.length) return [];
 
-    return newsItems
+    return projectNewsItems
       .filter((item) => {
         const project = getProjectFromData(data, item.projectId);
         const searchText = normalize(
@@ -56,20 +67,23 @@ export function NewsClient({ data }: { data: SiteData }) {
         return tokens.every((token) => searchText.includes(token));
       })
       .slice(0, 7);
-  }, [data, newsItems, query]);
+  }, [data, projectNewsItems, query]);
 
   const filteredItems = useMemo(() => {
-    return newsItems.filter((item) => {
+    const tokens = normalize(query).split(/\s+/).filter(Boolean);
+    return projectNewsItems.filter((item) => {
       const matchesCategory = category === "all" || item.category === category;
+      const project = getProjectFromData(data, item.projectId);
+      const searchText = normalize([item.title, item.excerpt, item.category, item.date, item.region, project?.name, project?.city, ...item.hashtags].join(" "));
+      const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));
 
-      return matchesCategory;
+      return matchesCategory && matchesQuery;
     });
-  }, [category, newsItems]);
+  }, [category, data, projectNewsItems, query]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {
       if (sortMode === "oldest") return parseNewsDate(a.date) - parseNewsDate(b.date);
-      if (sortMode === "popular") return (viewCountById[b.id] ?? 0) - (viewCountById[a.id] ?? 0);
 
       return parseNewsDate(b.date) - parseNewsDate(a.date);
     });
@@ -86,6 +100,15 @@ export function NewsClient({ data }: { data: SiteData }) {
 
   function updateCategory(value: string) {
     setCategory(value);
+    setIsCategoryOpen(false);
+    setPage(1);
+  }
+
+  function updateProjectId(value: string) {
+    setProjectId(value);
+    setCategory("all");
+    setIsProjectOpen(false);
+    setIsCategoryOpen(false);
     setPage(1);
   }
 
@@ -138,7 +161,7 @@ export function NewsClient({ data }: { data: SiteData }) {
                   <Link
                     key={item.id}
                     className="search-suggestion-option"
-                    href={`/news/${item.id}`}
+                    href={`/tin-tuc/${item.id}`}
                     role="option"
                     aria-selected="false"
                   >
@@ -159,19 +182,89 @@ export function NewsClient({ data }: { data: SiteData }) {
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="chip-row" aria-label="Lọc bài viết theo chủ đề">
-            {categoryOptions.map((item) => (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
+            <div className="relative min-w-[240px]">
               <button
-                key={item.value}
-                className={`chip ${category === item.value ? "active" : ""}`}
+                className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
                 type="button"
-                aria-pressed={category === item.value}
-                onClick={() => updateCategory(item.value)}
+                aria-label="Lọc bài viết theo dự án"
+                aria-expanded={isProjectOpen}
+                aria-haspopup="listbox"
+                onClick={() => setIsProjectOpen((open) => !open)}
               >
-                {item.label}
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <Building2 size={17} aria-hidden className="shrink-0 text-masterise-primary" />
+                  <span className="truncate">{currentProjectOption.label}</span>
+                </span>
+                <ChevronDown size={17} aria-hidden className={isProjectOpen ? "shrink-0 rotate-180 transition" : "shrink-0 transition"} />
               </button>
-            ))}
+
+              {isProjectOpen ? (
+                <div
+                  className="absolute left-0 top-[calc(100%+8px)] z-30 grid max-h-72 min-w-full gap-1 overflow-y-auto rounded-lg border border-masterise-line bg-white p-1.5 shadow-masterise"
+                  role="listbox"
+                >
+                  {projectOptions.map((item) => (
+                    <button
+                      key={item.value}
+                      className={`rounded-md px-3 py-2.5 text-left text-sm font-semibold transition ${
+                        item.value === projectId
+                          ? "bg-masterise-primary text-white"
+                          : "text-masterise-muted hover:bg-masterise-soft hover:text-masterise-dark"
+                      }`}
+                      type="button"
+                      role="option"
+                      aria-selected={item.value === projectId}
+                      onClick={() => updateProjectId(item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="relative min-w-[220px]">
+              <button
+                className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
+                type="button"
+                aria-label="Lọc bài viết theo chuyên mục"
+                aria-expanded={isCategoryOpen}
+                aria-haspopup="listbox"
+                onClick={() => setIsCategoryOpen((open) => !open)}
+              >
+                <span className="inline-flex min-w-0 items-center gap-2">
+                  <FolderOpen size={17} aria-hidden className="shrink-0 text-masterise-primary" />
+                  <span className="truncate">{currentCategoryOption.label}</span>
+                </span>
+                <ChevronDown size={17} aria-hidden className={isCategoryOpen ? "shrink-0 rotate-180 transition" : "shrink-0 transition"} />
+              </button>
+
+              {isCategoryOpen ? (
+                <div
+                  className="absolute left-0 top-[calc(100%+8px)] z-30 grid max-h-72 min-w-full gap-1 overflow-y-auto rounded-lg border border-masterise-line bg-white p-1.5 shadow-masterise"
+                  role="listbox"
+                >
+                  {categoryOptions.map((item) => (
+                    <button
+                      key={item.value}
+                      className={`rounded-md px-3 py-2.5 text-left text-sm font-semibold transition ${
+                        item.value === category
+                          ? "bg-masterise-primary text-white"
+                          : "text-masterise-muted hover:bg-masterise-soft hover:text-masterise-dark"
+                      }`}
+                      type="button"
+                      role="option"
+                      aria-selected={item.value === category}
+                      onClick={() => updateCategory(item.value)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <div className="relative">

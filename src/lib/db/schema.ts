@@ -17,6 +17,9 @@ export const projects = pgTable("projects", {
   image: text("image").notNull(),
   source: text("source").notNull(),
   summary: text("summary").notNull(),
+  address: text("address"),
+  mapEmbedUrl: text("map_embed_url"),
+  overviewItems: jsonb("overview_items").$type<Array<{ label: string; value: string }>>().notNull().default([]),
   highlights: jsonb("highlights").$type<string[]>().notNull().default([]),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
@@ -68,5 +71,11 @@ export const newsItems = pgTable("news_items", {
   content: jsonb("content").$type<string[]>().notNull().default([]),
   contentHtml: text("content_html"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
+});
+
+export const siteSettings = pgTable("site_settings", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<Record<string, unknown>>().notNull().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
 });

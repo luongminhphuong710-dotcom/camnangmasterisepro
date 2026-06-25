@@ -20,7 +20,7 @@ export function ProjectCard({ project, regionMeta = staticRegionMeta, stores = s
     <article className="project-card relative flex h-full cursor-pointer flex-col transition hover:shadow-masterise">
       <Link
         className="absolute inset-0 z-10 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-masterise-primary focus-visible:ring-offset-2"
-        href={`/projects/${project.id}`}
+        href={`/du-an/${project.id}`}
         aria-label={`Xem thông tin chi tiết ${project.name}`}
       />
       <figure>
@@ -36,15 +36,14 @@ export function ProjectCard({ project, regionMeta = staticRegionMeta, stores = s
         <p className="body-text text-sm">{project.summary}</p>
         <div className="flex flex-wrap justify-center gap-2">
           <span className="tag">{project.segment}</span>
-          <span className="tag">{project.status}</span>
           <span className="tag">{projectStores.length} gian hàng</span>
         </div>
         <div className="action-row mt-auto">
-          <Link className="primary-button relative z-20" href={`/projects/${project.id}`}>
+          <Link className="primary-button relative z-20" href={`/du-an/${project.id}`}>
             <Info size={18} aria-hidden />
             Thông tin
           </Link>
-          <Link className="secondary-button relative z-20" href={`/stores?project=${project.id}`}>
+          <Link className="secondary-button relative z-20" href={`/gian-hang?project=${project.id}`}>
             <Store size={18} aria-hidden />
             Gian hàng
           </Link>

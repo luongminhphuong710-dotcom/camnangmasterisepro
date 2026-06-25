@@ -1,10 +1,22 @@
 import { SectionHeading } from "@/components/SectionHeading";
 import { getSiteData } from "@/lib/runtime-data";
+import { seoMetadata } from "@/lib/seo";
 import { NewsClient } from "./NewsClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewsPage() {
+export const metadata = seoMetadata({
+  title: "Tin tức Masterise",
+  description: "Cập nhật tin tức, thông báo, sự kiện và thông tin tiện ích dành cho cư dân tại các dự án Masterise.",
+  path: "/tin-tuc",
+});
+
+type NewsPageProps = {
+  searchParams: Promise<{ project?: string }>;
+};
+
+export default async function NewsPage({ searchParams }: NewsPageProps) {
+  const params = await searchParams;
   const data = await getSiteData();
 
   return (
@@ -16,7 +28,7 @@ export default async function NewsPage() {
         description="Theo dõi nhanh các thông báo, sự kiện và tiến độ dự án tại các khu đô thị Masterise."
       />
 
-      <NewsClient data={data} />
+      <NewsClient data={data} initialProjectId={params.project} />
     </main>
   );
 }

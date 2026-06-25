@@ -19,6 +19,7 @@ import { StoreReviewBox } from "@/components/StoreReviewBox";
 import { StoreHeroGallery } from "@/components/StoreHeroGallery";
 import { StoreVoucherTickets } from "@/components/StoreVoucherTickets";
 import { getSiteData } from "@/lib/runtime-data";
+import { jsonLd, seoMetadata, siteName, siteUrl } from "@/lib/seo";
 import type { Store as StoreItem } from "@/lib/site-types";
 import { getCategoryFromList, getProjectFromData, shortText, slugify } from "@/lib/site-utils";
 
@@ -52,10 +53,12 @@ export async function generateMetadata({ params }: StorePageProps): Promise<Meta
   const { id } = await params;
   const data = await getSiteData();
   const store = findStoreByPath(data.stores, id);
-  return {
+  return seoMetadata({
     title: store ? store.name : "Gian hàng",
-    description: store?.note,
-  };
+    description: store?.note || "Thông tin gian hàng, dịch vụ, ưu đãi và đánh giá cư dân Masterise.",
+    path: `/gian-hang/${id}`,
+    image: store?.image,
+  });
 }
 
 export default async function StoreDetailPage({ params }: StorePageProps) {
@@ -141,9 +144,34 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
     { href: "#map", label: "Liên hệ", icon: Phone },
     { href: "#reviews", label: "Đánh giá", icon: Star },
   ];
+  const storeJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: store.name,
+    description: shortDescription,
+    image: gallery[0] || fallbackImage,
+    url: `${siteUrl}/gian-hang/${store.id}`,
+    telephone: store.phone,
+    address,
+    openingHours: store.hours,
+    aggregateRating:
+      displayRating !== null
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: displayRating.toFixed(1),
+            reviewCount: displayReviews.length,
+          }
+        : undefined,
+    isPartOf: {
+      "@type": "WebSite",
+      name: siteName,
+      url: siteUrl,
+    },
+  };
 
   return (
     <main className="detail-shell">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(storeJsonLd) }} />
       <section className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
         <div className="grid gap-6">
           <section className="order-2 rounded-lg border border-masterise-line bg-white p-5 shadow-masterise lg:hidden">
@@ -189,13 +217,13 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
           <div className="order-1 lg:order-none">
             <nav aria-label="Breadcrumb gian hàng" className="mb-3 flex min-w-0 items-center gap-2 text-xs font-extrabold uppercase text-masterise-primary">
-              <Link className="shrink-0 transition hover:text-masterise-dark" href="/stores">
+              <Link className="shrink-0 transition hover:text-masterise-dark" href="/gian-hang">
                 Gian hàng
               </Link>
               <span aria-hidden className="shrink-0 text-masterise-muted">
                 /
               </span>
-              <Link className="min-w-0 truncate transition hover:text-masterise-dark" href={`/stores?category=${store.category}`}>
+              <Link className="min-w-0 truncate transition hover:text-masterise-dark" href={`/gian-hang?category=${store.category}`}>
                 {category.label}
               </Link>
               <span aria-hidden className="shrink-0 text-masterise-muted">

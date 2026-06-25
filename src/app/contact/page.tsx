@@ -1,9 +1,11 @@
 import { ExternalLink, Phone } from "lucide-react";
+import { seoMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = seoMetadata({
   title: "Liên hệ",
   description: "Gọi hotline hoặc theo dõi Facebook Cẩm Nang Masterise để được hỗ trợ nhanh chóng.",
-};
+  path: "/contact",
+});
 
 export default function ContactPage() {
   return (

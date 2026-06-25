@@ -4,12 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Building2, ChevronRight, ExternalLink, Globe2, MapPin, Phone } from "lucide-react";
 
-export function Footer() {
+export function Footer({ logo = "" }: { logo?: string }) {
   const pathname = usePathname();
   const quickLinks = [
     { href: "/", label: "Trang chủ" },
-    { href: "/projects", label: "Dự án" },
-    { href: "/stores", label: "Gian hàng" },
+    { href: "/du-an", label: "Dự án" },
+    { href: "/gian-hang", label: "Gian hàng" },
     { href: "/contact", label: "Liên hệ" },
   ];
 
@@ -20,11 +20,12 @@ export function Footer() {
       <div className="footer-inner">
         <div className="footer-brand">
           <Link className="footer-logo-row" href="/">
-            <span className="footer-logo">CM</span>
-            <span>
-              <strong>Cẩm Nang Masterise</strong>
-              <small>Tiện ích và thông tin cư dân</small>
-            </span>
+            {logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logo} alt="Cẩm Nang Masterise" className="footer-logo-image" />
+            ) : (
+              <span className="footer-logo">CM</span>
+            )}
           </Link>
           <p>
             Kênh tổng hợp thông tin dự án, tiện ích, gian hàng và dịch vụ quanh cộng đồng cư dân Masterise.

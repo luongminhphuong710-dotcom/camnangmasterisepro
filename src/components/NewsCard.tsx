@@ -17,7 +17,7 @@ export function NewsCard({ item, projects = staticProjects, regionMeta = staticR
   const metaLabel = project?.name || fallbackRegionLabel;
 
   return (
-    <Link className="news-card grid h-full content-start" href={`/news/${item.id}`}>
+    <Link className="news-card grid h-full content-start" href={`/tin-tuc/${item.id}`}>
       <figure>
         <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw" />
       </figure>

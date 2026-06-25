@@ -26,7 +26,7 @@ export function StoreCard({
 
   return (
     <article className="store-card group relative flex h-full flex-col">
-      <Link className="absolute inset-0 z-10" href={`/stores/${store.id}`} aria-label={`Xem chi tiết ${store.name}`} />
+      <Link className="absolute inset-0 z-10" href={`/gian-hang/${store.id}`} aria-label={`Xem chi tiết ${store.name}`} />
       <figure>
         <Image
           src={store.image || project?.image || fallbackImage}
@@ -67,7 +67,7 @@ export function StoreCard({
             ) : null}
           </div>
           <div className="action-row relative z-20">
-            <Link className="primary-button" href={`/stores/${store.id}`}>
+            <Link className="primary-button" href={`/gian-hang/${store.id}`}>
               <Eye size={15} aria-hidden />
               Xem chi tiết
             </Link>
