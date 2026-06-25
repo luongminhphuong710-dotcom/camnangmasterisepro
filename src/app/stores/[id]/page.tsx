@@ -101,7 +101,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const detailContent = sanitizeRichTextHtml(cmsStore.detailContent || "");
   const cleanPhone = store.phone.replace(/\s/g, "");
   const navItems = [
-    { href: "#overview", label: "Thông tin tổng quan", icon: Info },
     { href: "#details", label: "Thông tin chi tiết", icon: FileText },
     { href: "#offers", label: "Ưu đãi", icon: TicketPercent },
     { href: "#map", label: "Liên hệ", icon: Phone },
@@ -224,16 +223,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               );
             })}
           </nav>
-
-          <div className="order-5 lg:order-none">
-            <ContentBlock id="overview" eyebrow="Thông tin tổng quan" title={`Giới thiệu ${store.name}`}>
-              <p className="body-text">
-                {store.name} là điểm dịch vụ thuộc nhóm {category.label.toLowerCase()} tại {project?.name ?? "khu dự án"}.
-                Thông tin được trình bày theo dạng cẩm nang để cư dân nhanh chóng nắm được vị trí, thời gian hoạt động,
-                cách liên hệ và những lưu ý cần biết trước khi sử dụng dịch vụ.
-              </p>
-            </ContentBlock>
-          </div>
 
           <div className="order-6 lg:order-none">
             <ContentBlock id="details" eyebrow="Thông tin chi tiết" title={`Chi tiết ${store.name}`}>
@@ -421,7 +410,6 @@ function ContentBlock({
 }
 
 const sectionIconById: Record<string, LucideIcon> = {
-  overview: Info,
   details: FileText,
   offers: TicketPercent,
   map: Phone,
