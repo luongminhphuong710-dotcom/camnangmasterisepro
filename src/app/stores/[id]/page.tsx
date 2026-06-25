@@ -132,7 +132,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
     ? displayReviews.reduce((total, review) => total + review.rating, 0) / displayReviews.length
     : null;
   const storeVouchers = Array.isArray(cmsStore.vouchers)
-    ? cmsStore.vouchers.filter((voucher) => voucher.code && voucher.description)
+    ? cmsStore.vouchers.filter((voucher) => voucher.code.trim() && voucher.description.trim())
     : [];
   const hasVouchers = storeVouchers.length > 0;
   const navItems = [

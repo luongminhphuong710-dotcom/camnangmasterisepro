@@ -18,7 +18,7 @@ type StoreVoucherTicketsProps = {
 const vouchersPerPage = 3;
 
 export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: StoreVoucherTicketsProps) {
-  const vouchers = storeVouchers?.filter((voucher) => voucher.code && voucher.description) || [];
+  const vouchers = storeVouchers?.filter((voucher) => voucher.code.trim() && voucher.description.trim()) || [];
   const [claimedCode, setClaimedCode] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const pageCount = Math.ceil(vouchers.length / vouchersPerPage);
