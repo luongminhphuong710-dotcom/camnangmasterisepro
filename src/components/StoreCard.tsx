@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Building2, Clock3, Eye, MapPin, Phone, Star } from "lucide-react";
 import { fallbackImage as staticFallbackImage, storeCategories as staticStoreCategories } from "@/lib/data";
 import type { Project, Store, StoreCategory } from "@/lib/site-types";
-import { getCategoryFromList } from "@/lib/site-utils";
+import { getCategoryFromList, shortText } from "@/lib/site-utils";
 
 type StoreCardProps = {
   store: Store;
@@ -46,7 +46,7 @@ export function StoreCard({
             </span>
           ) : null}
         </div>
-        <p className="store-card-note body-text text-sm">{store.note}</p>
+        <p className="store-card-note body-text text-sm">{shortText(store.note, 120)}</p>
         <div className="mt-auto grid gap-3">
           <div className="meta-grid">
             {distanceLabel ? (

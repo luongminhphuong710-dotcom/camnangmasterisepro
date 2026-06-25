@@ -20,7 +20,7 @@ import { StoreHeroGallery } from "@/components/StoreHeroGallery";
 import { StoreVoucherTickets } from "@/components/StoreVoucherTickets";
 import { getSiteData } from "@/lib/runtime-data";
 import type { Store as StoreItem } from "@/lib/site-types";
-import { getCategoryFromList, getProjectFromData, slugify } from "@/lib/site-utils";
+import { getCategoryFromList, getProjectFromData, shortText, slugify } from "@/lib/site-utils";
 
 type StorePageProps = {
   params: Promise<{ id: string }>;
@@ -99,6 +99,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const mapSearchUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
   const mapEmbedSrc = googleMapsEmbedSrc(cmsStore.mapEmbedUrl) || `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`;
   const detailContent = sanitizeRichTextHtml(cmsStore.detailContent || "");
+  const shortDescription = shortText(store.note, 220);
   const cleanPhone = store.phone.replace(/\s/g, "");
   const navItems = [
     { href: "#details", label: "Thông tin chi tiết", icon: FileText },
@@ -147,7 +148,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               {category.label}
             </span>
             <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
-            <p className="body-text mt-3 text-sm">{store.note}</p>
+            <p className="body-text mt-3 text-sm">{shortDescription}</p>
 
             <div className="mt-5 grid gap-3 text-sm text-masterise-muted">
               <span className="flex items-center gap-2">
@@ -290,7 +291,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               {category.label}
             </span>
             <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
-            <p className="body-text mt-3 text-sm">{store.note}</p>
+            <p className="body-text mt-3 text-sm">{shortDescription}</p>
 
             <div className="mt-5 grid gap-3 text-sm text-masterise-muted">
               <span className="flex items-center gap-2">

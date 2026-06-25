@@ -48,6 +48,17 @@ export function slugify(value: unknown): string {
     .replace(/^-+|-+$/g, "");
 }
 
+export function shortText(value: unknown, maxLength = 160): string {
+  const text = String(value || "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= maxLength) return text;
+
+  const clipped = text.slice(0, maxLength).replace(/\s+\S*$/, "").trim();
+  return `${clipped || text.slice(0, maxLength).trim()}...`;
+}
+
 export function distanceInKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {
   const earthRadius = 6371;
   const dLat = toRadians(to.lat - from.lat);
