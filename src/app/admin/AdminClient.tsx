@@ -2889,7 +2889,6 @@ function GalleryUploadField({
   value: string[];
   onChange: (value: CmsValue) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -2985,17 +2984,26 @@ function GalleryUploadField({
         ))}
 
         {!disabled ? (
-          <button
+          <label
             className="grid aspect-[4/2.5] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-bold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
-            type="button"
-            disabled={isUploading}
-            onClick={() => inputRef.current?.click()}
           >
+            <input
+              className="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              multiple
+              disabled={isUploading}
+              onChange={(event) => {
+                const files = event.target.files;
+                event.target.value = "";
+                if (files) void uploadFiles(files);
+              }}
+            />
             <span className="grid justify-items-center gap-2">
               {isUploading ? <Loader2 className="animate-spin" size={24} aria-hidden /> : <ImagePlus size={24} aria-hidden />}
               {isUploading ? "Đang xử lý..." : "Thêm ảnh"}
             </span>
-          </button>
+          </label>
         ) : null}
       </div>
 
@@ -3004,19 +3012,6 @@ function GalleryUploadField({
           Kéo ảnh vào đây hoặc bấm Thêm ảnh để xem preview.
         </div>
       ) : null}
-
-      <input
-        ref={inputRef}
-        className="hidden"
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif"
-        multiple
-        onChange={(event) => {
-          const files = event.target.files;
-          event.target.value = "";
-          if (files) void uploadFiles(files);
-        }}
-      />
       {error ? <small className="text-xs font-semibold leading-5 text-red-700">{error}</small> : null}
     </div>
   );
