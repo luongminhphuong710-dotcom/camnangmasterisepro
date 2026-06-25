@@ -101,12 +101,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const detailContent = sanitizeRichTextHtml(cmsStore.detailContent || "");
   const shortDescription = shortText(store.note, 220);
   const cleanPhone = store.phone.replace(/\s/g, "");
-  const navItems = [
-    { href: "#details", label: "Thông tin chi tiết", icon: FileText },
-    { href: "#offers", label: "Ưu đãi", icon: TicketPercent },
-    { href: "#map", label: "Liên hệ", icon: Phone },
-    { href: "#reviews", label: "Đánh giá", icon: Star },
-  ];
   const demoReviews = [
     {
       name: "EmpatheticCarrot1687",
@@ -137,7 +131,16 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const displayRating = displayReviews.length
     ? displayReviews.reduce((total, review) => total + review.rating, 0) / displayReviews.length
     : null;
-  const storeVouchers = Array.isArray(cmsStore.vouchers) ? cmsStore.vouchers : undefined;
+  const storeVouchers = Array.isArray(cmsStore.vouchers)
+    ? cmsStore.vouchers.filter((voucher) => voucher.code && voucher.description)
+    : [];
+  const hasVouchers = storeVouchers.length > 0;
+  const navItems = [
+    { href: "#details", label: "Thông tin chi tiết", icon: FileText },
+    ...(hasVouchers ? [{ href: "#offers", label: "Ưu đãi", icon: TicketPercent }] : []),
+    { href: "#map", label: "Liên hệ", icon: Phone },
+    { href: "#reviews", label: "Đánh giá", icon: Star },
+  ];
 
   return (
     <main className="detail-shell">
@@ -235,11 +238,13 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             </ContentBlock>
           </div>
 
-          <div className="order-7 lg:order-none">
-            <ContentBlock id="offers" eyebrow="Ưu đãi" title="Thông tin ưu đãi">
-              <StoreVoucherTickets storeName={store.name} vouchers={storeVouchers} />
-            </ContentBlock>
-          </div>
+          {hasVouchers ? (
+            <div className="order-7 lg:order-none">
+              <ContentBlock id="offers" eyebrow="Ưu đãi" title="Thông tin ưu đãi">
+                <StoreVoucherTickets storeName={store.name} vouchers={storeVouchers} />
+              </ContentBlock>
+            </div>
+          ) : null}
 
           <div className="order-8 lg:order-none">
             <ContentBlock id="map" eyebrow="Liên hệ" title="Chỉ đường đến gian hàng">

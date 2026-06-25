@@ -15,25 +15,10 @@ type StoreVoucherTicketsProps = {
   vouchers?: readonly Voucher[];
 };
 
-const defaultVouchers: Voucher[] = [
-  {
-    code: "CUDAN10",
-    description: "Giảm 10% khi sử dụng dịch vụ trực tiếp tại gian hàng.",
-  },
-  {
-    code: "MASTERI50",
-    description: "Giảm trực tiếp 50K cho hóa đơn từ 300K, tùy điều kiện từng thời điểm.",
-  },
-  {
-    code: "WELCOME",
-    description: "Nhận phần quà nhỏ khi ghé gian hàng lần đầu và xác nhận thông tin cư dân.",
-  },
-];
-
 const vouchersPerPage = 3;
 
 export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: StoreVoucherTicketsProps) {
-  const vouchers = storeVouchers || defaultVouchers;
+  const vouchers = storeVouchers?.filter((voucher) => voucher.code && voucher.description) || [];
   const [claimedCode, setClaimedCode] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
   const pageCount = Math.ceil(vouchers.length / vouchersPerPage);
@@ -55,6 +40,8 @@ export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: Stor
       await navigator.clipboard.writeText(code).catch(() => undefined);
     }
   }
+
+  if (!vouchers.length) return null;
 
   return (
     <div className="grid gap-3">
@@ -79,7 +66,6 @@ export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: Stor
         </div>
       ) : null}
 
-      {vouchers.length ? (
       <div className="grid gap-3 md:grid-cols-3">
         {visibleVouchers.map((voucher) => {
           const isClaimed = claimedCode === voucher.code;
@@ -116,11 +102,6 @@ export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: Stor
           );
         })}
       </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-masterise-line bg-masterise-surface p-5 text-sm font-semibold text-masterise-muted">
-          Chưa có ưu đãi đang áp dụng.
-        </div>
-      )}
     </div>
   );
 }
