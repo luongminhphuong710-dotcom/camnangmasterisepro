@@ -80,7 +80,7 @@ a {
   }
 
   .rich-text-content > * + * {
-    @apply mt-3;
+    @apply mt-2;
   }
 
   .rich-text-content h2 {
@@ -92,7 +92,7 @@ a {
   }
 
   .rich-text-content p {
-    @apply min-h-[1.2em];
+    @apply m-0;
   }
 
   .rich-text-content ul {
