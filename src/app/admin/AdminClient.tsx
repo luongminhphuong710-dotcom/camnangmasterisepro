@@ -3082,6 +3082,13 @@ function ImageUploadField({
   );
 }
 
+const IMAGE_FILE_EXTENSION_PATTERN = /\.(png|jpe?g|webp|gif|bmp|avif|heic|heif)$/i;
+
+function isImageFile(file: File) {
+  if (file.type) return file.type.startsWith("image/");
+  return IMAGE_FILE_EXTENSION_PATTERN.test(file.name);
+}
+
 function GalleryUploadField({
   disabled,
   value,
@@ -3097,8 +3104,13 @@ function GalleryUploadField({
   const [error, setError] = useState("");
 
   async function uploadFiles(files: FileList | File[]) {
-    const imageFiles = Array.from(files).filter((file) => file.type.startsWith("image/"));
-    if (!imageFiles.length || disabled) return;
+    if (disabled) return;
+    const allFiles = Array.from(files);
+    const imageFiles = allFiles.filter(isImageFile);
+    if (!imageFiles.length) {
+      setError(allFiles.length ? "Không nhận diện được ảnh đã chọn. Vui lòng chọn lại tệp PNG, JPG, WEBP hoặc GIF." : "");
+      return;
+    }
 
     setIsUploading(true);
     setError("");
