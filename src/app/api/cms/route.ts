@@ -3,7 +3,7 @@ import { eq, getTableColumns, notInArray, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { uploadCmsImage } from "@/lib/cloudinary";
 import { db } from "@/lib/db/client";
-import { cmsUsers, projects, storeCategories, stores } from "@/lib/db/schema";
+import { cmsUsers, newsItems, projects, storeCategories, stores } from "@/lib/db/schema";
 import {
   isLocalDemoMode,
   loadLocalDemoUsers,
@@ -137,19 +137,23 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown }) {
+async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown; newsItems?: unknown }) {
   const incomingStores = Array.isArray(data.stores) ? data.stores : [];
   const incomingProjects = Array.isArray(data.projects) ? data.projects : [];
   const incomingCategories = Array.isArray(data.storeCategories) ? data.storeCategories : [];
+  const incomingNewsItems = Array.isArray(data.newsItems) ? data.newsItems : [];
 
   if (isLocalDemoMode()) {
     await saveLocalDemoSiteData({
       stores: incomingStores,
       projects: incomingProjects,
       storeCategories: incomingCategories,
+      newsItems: incomingNewsItems,
     });
     return;
   }
+
+  await ensureNewsItemsTable();
 
   if (incomingStores.length) {
     await db
@@ -182,6 +186,36 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
   } else {
     await db.delete(storeCategories);
   }
+
+  if (incomingNewsItems.length) {
+    await db
+      .insert(newsItems)
+      .values(incomingNewsItems)
+      .onConflictDoUpdate({ target: newsItems.id, set: buildConflictUpdateSet(newsItems) });
+    await db.delete(newsItems).where(notInArray(newsItems.id, incomingNewsItems.map((item: { id: string }) => item.id)));
+  } else {
+    await db.delete(newsItems);
+  }
+}
+
+async function ensureNewsItemsTable() {
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS news_items (
+      id text PRIMARY KEY,
+      title text NOT NULL,
+      project_id text NOT NULL,
+      region text NOT NULL,
+      date text NOT NULL,
+      category text NOT NULL,
+      hashtags jsonb NOT NULL DEFAULT '[]'::jsonb,
+      image text NOT NULL,
+      excerpt text NOT NULL,
+      content jsonb NOT NULL DEFAULT '[]'::jsonb,
+      content_html text,
+      created_at timestamp with time zone,
+      updated_at timestamp with time zone
+    )
+  `);
 }
 
 function buildConflictUpdateSet(table: Parameters<typeof getTableColumns>[0]) {

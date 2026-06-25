@@ -54,3 +54,19 @@ export const cmsUsers = pgTable("cms_users", {
   role: text("role").notNull(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true, mode: "string" }),
 });
+
+export const newsItems = pgTable("news_items", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  projectId: text("project_id").notNull(),
+  region: text("region").notNull(),
+  date: text("date").notNull(),
+  category: text("category").notNull(),
+  hashtags: jsonb("hashtags").$type<string[]>().notNull().default([]),
+  image: text("image").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content: jsonb("content").$type<string[]>().notNull().default([]),
+  contentHtml: text("content_html"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }),
+});

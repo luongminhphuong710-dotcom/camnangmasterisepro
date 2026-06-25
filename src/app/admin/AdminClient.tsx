@@ -15,6 +15,7 @@ import {
   Loader2,
   LogIn,
   LogOut,
+  Newspaper,
   Pencil,
   Plus,
   Save,
@@ -71,7 +72,8 @@ type ReviewImageItem = {
 };
 type CmsValue = string | number | string[] | VoucherItem[] | ReviewItem[] | undefined;
 type CmsItem = Record<string, CmsValue>;
-type NavKey = "stores" | "projects" | "categories" | "permissions";
+type ListNavKey = "stores" | "projects" | "news";
+type NavKey = ListNavKey | "categories" | "permissions";
 type ViewMode = "list" | "view" | "edit";
 type StatusType = "success" | "error" | "loading";
 type ToastItem = { id: number; type: "success" | "error"; message: string };
@@ -139,6 +141,7 @@ type AdminClientProps = {
 const navItems: Array<{ key: NavKey; label: string; icon: typeof Store }> = [
   { key: "stores", label: "Gian hàng", icon: Store },
   { key: "projects", label: "Dự án", icon: LayoutDashboard },
+  { key: "news", label: "Tin tức", icon: Newspaper },
   { key: "categories", label: "Danh mục", icon: Tags },
   { key: "permissions", label: "Phân quyền", icon: ShieldCheck },
 ];
@@ -155,10 +158,11 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
   const [mode, setMode] = useState<ViewMode>(initialMode);
   const [detailId, setDetailId] = useState(initialItemId);
   const [selectedIds, setSelectedIds] = useState<Partial<Record<NavKey, string>>>({});
-  const [pageBySection, setPageBySection] = useState<Record<"stores" | "projects", number>>({ stores: 1, projects: 1 });
-  const [sortBySection, setSortBySection] = useState<Record<"stores" | "projects", { key: SortKey; direction: SortDirection }>>({
+  const [pageBySection, setPageBySection] = useState<Record<ListNavKey, number>>({ stores: 1, projects: 1, news: 1 });
+  const [sortBySection, setSortBySection] = useState<Record<ListNavKey, { key: SortKey; direction: SortDirection }>>({
     stores: { key: "createdAt", direction: "desc" },
     projects: { key: "createdAt", direction: "desc" },
+    news: { key: "createdAt", direction: "desc" },
   });
   const [query, setQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -187,8 +191,9 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     setToasts((current) => current.filter((toast) => toast.id !== id));
   }
 
-  const listSection = activeNav === "projects" ? "projects" : "stores";
-  const collection = activeNav === "projects" ? data.projects : data.stores;
+  const listSection: ListNavKey = activeNav === "projects" ? "projects" : activeNav === "news" ? "news" : "stores";
+  const collectionKey = dataKeyForSection(listSection);
+  const collection = data[collectionKey];
   const selectedId = detailId || getSelectedId(listSection, collection, selectedIds);
   const selectedItem = collection.find((item) => stringValue(item.id) === selectedId) || (mode === "list" ? collection[0] : undefined);
   const canWrite = session ? ["super_admin", "admin"].includes(session.role) : false;
@@ -199,6 +204,8 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     let items = text ? collection.filter((item) => normalize(Object.values(item).flat().join(" ")).includes(text)) : collection;
     if (listSection === "stores") {
       if (categoryFilter) items = items.filter((item) => stringValue(item.category) === categoryFilter);
+      if (projectFilter) items = items.filter((item) => stringValue(item.projectId) === projectFilter);
+    } else if (listSection === "news") {
       if (projectFilter) items = items.filter((item) => stringValue(item.projectId) === projectFilter);
     }
     return sortItems(items, sortBySection[listSection]);
@@ -381,19 +388,20 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
   function addItem() {
     if (!canWrite) return;
-    const item = listSection === "stores" ? createStore(data) : createProject(data);
+    const item = listSection === "stores" ? createStore(data) : listSection === "news" ? createNewsItem(data) : createProject(data);
     const id = stringValue(item.id);
     setData((current) => ({
       ...current,
-      [listSection]: [...current[listSection], item],
+      [collectionKey]: [...current[collectionKey], item],
     }));
     setSelectedIds((current) => ({ ...current, [listSection]: id }));
     setMode("edit");
     setDetailId(id);
     window.history.pushState(null, "", adminPath(listSection, "edit", id));
     setIsDirty(true);
-    pushToast(listSection === "stores" ? "Đã tạo gian hàng mới. Bấm Lưu để lưu lên CMS." : "Đã tạo trang dự án mới. Bấm Lưu để lưu lên CMS.");
-    setStatus({ type: "success", message: listSection === "stores" ? "Đã tạo gian hàng mới." : "Đã tạo trang dự án mới." });
+    const itemLabel = listSection === "stores" ? "gian hàng" : listSection === "news" ? "bài viết" : "trang dự án";
+    pushToast(`Đã tạo ${itemLabel} mới. Bấm Lưu để lưu lên CMS.`);
+    setStatus({ type: "success", message: `Đã tạo ${itemLabel} mới.` });
   }
 
   function deleteItem(item?: CmsItem) {
@@ -405,7 +413,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     const nextCollection = collection.filter((current) => current !== target);
     setData((current) => ({
       ...current,
-      [listSection]: nextCollection,
+      [collectionKey]: nextCollection,
     }));
     setSelectedIds((current) => ({ ...current, [listSection]: stringValue(nextCollection[0]?.id) }));
     if (target === selectedItem) navigateTo(listSection, "list");
@@ -422,12 +430,15 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     // The id still matches the auto-slug of the current name, so it hasn't been
     // manually customized yet: keep it in sync while the store is being named.
     // Once staff edit the id directly (or it diverges from the name), this stops.
+    const autoSlugKey = listSection === "news" ? "title" : "name";
     const shouldAutoSyncId =
-      key === "name" && listSection === "stores" && oldId === slugify(stringValue(selectedItem.name));
+      key === autoSlugKey &&
+      (listSection === "stores" || listSection === "news") &&
+      oldId === slugify(stringValue(selectedItem[autoSlugKey]));
     const nextId = shouldAutoSyncId ? uniqueId(stringValue(value), collection.filter((item) => item !== selectedItem)) : oldId;
     setData((current) => ({
       ...current,
-      [listSection]: current[listSection].map((item) =>
+      [collectionKey]: current[collectionKey].map((item) =>
         stringValue(item.id) === oldId
           ? {
               ...item,
@@ -556,15 +567,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
         <section className="grid content-start gap-5 p-4 md:p-6">
           <header className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-extrabold">
-              {activeNav === "stores"
-                ? "Quản lý gian hàng"
-                : activeNav === "projects"
-                  ? "Quản lý dự án"
-                  : activeNav === "categories"
-                    ? "Quản lý danh mục"
-                    : "Phân quyền"}
-            </h1>
+            <h1 className="text-2xl font-extrabold">{sectionTitle(activeNav)}</h1>
           </header>
 
           {activeNav === "permissions" ? (
@@ -634,7 +637,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                 {canWrite ? (
                   <button className="primary-button" type="button" onClick={addItem}>
                     <Plus size={18} aria-hidden />
-                    {listSection === "stores" ? "Tạo gian hàng" : "Tạo trang dự án"}
+                    {listSection === "stores" ? "Tạo gian hàng" : listSection === "projects" ? "Tạo trang dự án" : "Tạo bài viết"}
                   </button>
                 ) : null}
               </div>
@@ -657,6 +660,24 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                   onSort={sortBy}
                   onView={(id) => navigateTo("stores", "view", id)}
                   pushToast={pushToast}
+                />
+              ) : activeNav === "news" ? (
+                <NewsTable
+                  items={paginatedItems}
+                  data={data}
+                  canWrite={canWrite}
+                  canDelete={canDelete}
+                  currentPage={currentPage}
+                  resultEnd={resultEnd}
+                  resultStart={resultStart}
+                  sort={sortBySection[listSection]}
+                  totalCount={filteredItems.length}
+                  totalPages={totalPages}
+                  onDelete={deleteItem}
+                  onEdit={(id) => navigateTo("news", "edit", id)}
+                  onPageChange={setCurrentPage}
+                  onSort={sortBy}
+                  onView={(id) => navigateTo("news", "view", id)}
                 />
               ) : (
                 <ProjectsTable
@@ -696,7 +717,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                 <div className="flex flex-wrap gap-2">
                   <a
                     className="secondary-button"
-                    href={listSection === "stores" ? `/stores/${stringValue(selectedItem.id)}` : `/projects/${stringValue(selectedItem.id)}`}
+                    href={publicItemPath(listSection, stringValue(selectedItem.id))}
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -1390,6 +1411,39 @@ function PermissionPill({ enabled, label }: { enabled: boolean; label: string })
 }
 
 function DetailView({ section, item, data }: { section: NavKey; item: CmsItem; data: SiteData }) {
+  if (section === "news") {
+    const newsDetails = [
+      ["ID đường dẫn", stringValue(item.id)],
+      ["Tiêu đề", stringValue(item.title)],
+      ["Dự án", projectName(data, item.projectId)],
+      ["Miền", regionLabel(data, item.region)],
+      ["Ngày đăng", stringValue(item.date)],
+      ["Chuyên mục", stringValue(item.category)],
+      ["Hashtag", arrayToText(item.hashtags, "tags")],
+      ["Thời gian tạo", formatCmsDate(item.createdAt)],
+      ["Update mới nhất", formatCmsDate(item.updatedAt)],
+      ["Ảnh đại diện", stringValue(item.image)],
+      ["Mô tả ngắn", stringValue(item.excerpt)],
+      ["Nội dung bài viết", richTextPreview(item.contentHtml) || arrayToText(item.content, "paragraphs")],
+    ];
+
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        {newsDetails.map(([label, value]) => (
+          <div
+            key={label}
+            className={`rounded-lg border border-masterise-line bg-masterise-surface p-4 ${
+              String(value).length > 90 ? "md:col-span-2" : ""
+            }`}
+          >
+            <span className="block text-xs font-bold uppercase text-masterise-muted">{label}</span>
+            <strong className="mt-2 block break-words text-sm leading-6 text-masterise-ink">{value || "-"}</strong>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const details =
     section === "stores"
       ? [
@@ -1703,6 +1757,154 @@ function StoresTable({
               <tr>
                 <td className="px-4 py-8 text-center text-masterise-muted" colSpan={9}>
                   Không có gian hàng phù hợp.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function NewsTable({
+  items,
+  data,
+  canWrite,
+  canDelete,
+  currentPage,
+  resultEnd,
+  resultStart,
+  sort,
+  totalCount,
+  totalPages,
+  onDelete,
+  onEdit,
+  onPageChange,
+  onSort,
+  onView,
+}: {
+  items: CmsItem[];
+  data: SiteData;
+  canWrite: boolean;
+  canDelete: boolean;
+  currentPage: number;
+  resultEnd: number;
+  resultStart: number;
+  sort: { key: SortKey; direction: SortDirection };
+  totalCount: number;
+  totalPages: number;
+  onDelete: (item: CmsItem) => void;
+  onEdit: (id: string) => void;
+  onPageChange: (page: number) => void;
+  onSort: (key: SortKey) => void;
+  onView: (id: string) => void;
+}) {
+  return (
+    <div>
+      <TableSummary
+        currentPage={currentPage}
+        resultEnd={resultEnd}
+        resultStart={resultStart}
+        totalCount={totalCount}
+        totalPages={totalPages}
+        onPageChange={onPageChange}
+      />
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
+          <thead className="bg-masterise-surface text-xs uppercase text-masterise-muted">
+            <tr>
+              <th className="px-4 py-3">Bài viết</th>
+              <th className="px-4 py-3">Dự án</th>
+              <th className="px-4 py-3">Chuyên mục</th>
+              <th className="px-4 py-3">Ngày đăng</th>
+              <th className="px-4 py-3">
+                <SortHeader activeSort={sort} label="Thời gian tạo" sortKey="createdAt" onSort={onSort} />
+              </th>
+              <th className="px-4 py-3">
+                <SortHeader activeSort={sort} label="Update mới nhất" sortKey="updatedAt" onSort={onSort} />
+              </th>
+              <th className="px-4 py-3 text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => {
+              const id = stringValue(item.id);
+              return (
+                <tr
+                  key={id}
+                  className="cursor-pointer border-t border-masterise-line transition hover:bg-masterise-soft/70"
+                  onClick={() => onView(id)}
+                >
+                  <td className="px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md border border-masterise-line bg-masterise-soft">
+                        <Image
+                          src={stringValue(item.image) || data.fallbackImage}
+                          alt={stringValue(item.title) || "Ảnh bài viết"}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
+                      </div>
+                      <span className="min-w-0">
+                        <strong className="block truncate text-masterise-ink">{stringValue(item.title) || id}</strong>
+                        <span className="block truncate text-xs text-masterise-muted">/news/{id}</span>
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">{projectName(data, item.projectId)}</td>
+                  <td className="px-4 py-3">{stringValue(item.category) || "-"}</td>
+                  <td className="px-4 py-3">{stringValue(item.date) || "-"}</td>
+                  <td className="px-4 py-3 text-xs font-semibold text-masterise-muted">{formatCmsDate(item.createdAt)}</td>
+                  <td className="px-4 py-3 text-xs font-semibold text-masterise-muted">{formatCmsDate(item.updatedAt)}</td>
+                  <td className="px-4 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <a
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-masterise-line text-masterise-primary transition hover:border-masterise-primary hover:bg-white"
+                        href={`/news/${id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label="Xem bài viết"
+                      >
+                        <Eye size={16} aria-hidden />
+                      </a>
+                      {canWrite ? (
+                        <button
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-masterise-line text-masterise-primary transition hover:border-masterise-primary hover:bg-white"
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onEdit(id);
+                          }}
+                          aria-label="Chỉnh sửa bài viết"
+                        >
+                          <Pencil size={16} aria-hidden />
+                        </button>
+                      ) : null}
+                      {canDelete ? (
+                        <button
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-red-200 text-red-700 transition hover:border-red-700"
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDelete(item);
+                          }}
+                          aria-label="Xóa bài viết"
+                        >
+                          <Trash2 size={16} aria-hidden />
+                        </button>
+                      ) : null}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {!items.length ? (
+              <tr>
+                <td className="px-4 py-8 text-center text-masterise-muted" colSpan={7}>
+                  Không có bài viết phù hợp.
                 </td>
               </tr>
             ) : null}
@@ -3485,6 +3687,21 @@ function fieldsFor(section: NavKey, data: SiteData): FieldConfig[] {
     ];
   }
 
+  if (section === "news") {
+    return [
+      { key: "title", label: "Tiêu đề", type: "text", full: true },
+      { key: "id", label: "ID đường dẫn", type: "text", helper: "Ví dụ: tin-tuc-moi." },
+      { key: "projectId", label: "Dự án", type: "select", options: projectOptions(data) },
+      { key: "region", label: "Miền", type: "select", options: regionOptions(data) },
+      { key: "date", label: "Ngày đăng", type: "text", helper: "Định dạng dd/mm/yyyy." },
+      { key: "category", label: "Chuyên mục", type: "text" },
+      { key: "image", label: "Ảnh đại diện", type: "image", full: true },
+      { key: "excerpt", label: "Mô tả ngắn", type: "textarea", full: true, rows: 4 },
+      { key: "hashtags", label: "Hashtag", type: "array", mode: "tags", full: true, rows: 3 },
+      { key: "contentHtml", label: "Nội dung bài viết", type: "richtext", full: true },
+    ];
+  }
+
   return [
     { key: "id", label: "ID đường dẫn", type: "text", helper: "Ví dụ: masteri-grand-coast." },
     { key: "name", label: "Tên dự án", type: "text" },
@@ -3541,7 +3758,7 @@ function normalizeData(data: unknown): SiteData {
     projects: Array.isArray(source.projects) ? source.projects : [],
     storeCategories: normalizeStoreCategories(Array.isArray(source.storeCategories) ? source.storeCategories : []),
     stores: Array.isArray(source.stores) ? source.stores.map(normalizeStoreItem) : [],
-    newsItems: Array.isArray(source.newsItems) ? source.newsItems : [],
+    newsItems: Array.isArray(source.newsItems) ? source.newsItems.map(normalizeNewsItem) : [],
   };
 }
 
@@ -3554,6 +3771,22 @@ function normalizeStoreItem(item: CmsItem): CmsItem {
     detailContent: sanitizeRichTextHtml(stringValue(item.detailContent)),
     rating: stats.rating,
     reviewCount: stats.count,
+  };
+}
+
+function normalizeNewsItem(item: CmsItem): CmsItem {
+  return {
+    ...item,
+    title: stringValue(item.title),
+    projectId: stringValue(item.projectId),
+    region: stringValue(item.region) || "north",
+    date: stringValue(item.date) || todayDisplayDate(),
+    category: stringValue(item.category) || "Tin tức",
+    image: stringValue(item.image),
+    excerpt: stringValue(item.excerpt),
+    hashtags: Array.isArray(item.hashtags) ? item.hashtags.map((tag) => String(tag ?? "")).filter(Boolean) : [],
+    content: Array.isArray(item.content) ? item.content.map((block) => String(block ?? "")).filter(Boolean) : [],
+    contentHtml: sanitizeRichTextHtml(stringValue(item.contentHtml)),
   };
 }
 
@@ -3612,8 +3845,27 @@ function createProject(data: SiteData): CmsItem {
   };
 }
 
+function createNewsItem(data: SiteData): CmsItem {
+  const timestamp = nowIso();
+  return {
+    id: uniqueId("bai-viet-moi", data.newsItems),
+    title: "Bài viết mới",
+    projectId: firstProjectId(data),
+    region: "north",
+    date: todayDisplayDate(),
+    category: "Tin tức",
+    hashtags: [],
+    image: "",
+    excerpt: "",
+    content: [],
+    contentHtml: "",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 function itemTitle(section: NavKey, item: CmsItem) {
-  return stringValue(section === "stores" ? item.name : item.name) || stringValue(item.id) || "Chưa có tiêu đề";
+  return stringValue(section === "news" ? item.title : item.name) || stringValue(item.id) || "Chưa có tiêu đề";
 }
 
 function regionOptions(data: SiteData) {
@@ -3630,6 +3882,18 @@ function categoryOptions(data: SiteData) {
   return data.storeCategories
     .filter((category) => stringValue(category.id) !== "all")
     .map((category) => ({ value: stringValue(category.id), label: stringValue(category.label || category.id) }));
+}
+
+function sectionTitle(section: NavKey) {
+  if (section === "stores") return "Quản lý gian hàng";
+  if (section === "projects") return "Quản lý dự án";
+  if (section === "news") return "Quản lý tin tức";
+  if (section === "categories") return "Quản lý danh mục";
+  return "Phân quyền";
+}
+
+function dataKeyForSection(section: ListNavKey): "stores" | "projects" | "newsItems" {
+  return section === "news" ? "newsItems" : section;
 }
 
 function firstProjectId(data: SiteData) {
@@ -3902,6 +4166,21 @@ function nowIso() {
   return new Date().toISOString();
 }
 
+function todayDisplayDate() {
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
+  }).format(new Date());
+}
+
+function publicItemPath(section: ListNavKey, itemId: string) {
+  if (section === "stores") return `/stores/${itemId}`;
+  if (section === "news") return `/news/${itemId}`;
+  return `/projects/${itemId}`;
+}
+
 function adminPath(section: NavKey, mode: ViewMode = "list", itemId = "") {
   if (section === "permissions" || section === "categories") return `/admin/${section}`;
   if (mode === "list" || !itemId) return `/admin/${section}`;
@@ -3911,7 +4190,7 @@ function adminPath(section: NavKey, mode: ViewMode = "list", itemId = "") {
 function routeFromPath(pathname: string): { section: NavKey; mode: ViewMode; itemId: string } {
   const parts = pathname.split("/").filter(Boolean);
   if (parts[1] === "permissions" || parts[1] === "categories") return { section: parts[1], mode: "list", itemId: "" };
-  const section = parts[1] === "projects" ? "projects" : "stores";
+  const section = parts[1] === "projects" ? "projects" : parts[1] === "news" ? "news" : "stores";
   const itemId = parts[2] ? decodeURIComponent(parts[2]) : "";
   const mode = itemId ? (parts[3] === "edit" ? "edit" : "view") : "list";
   return { section, mode, itemId };

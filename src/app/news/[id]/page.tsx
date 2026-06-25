@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { NewsCard } from "@/components/NewsCard";
-import { newsItems } from "@/lib/data";
 import { normalize } from "@/lib/helpers";
+import { getSiteData } from "@/lib/runtime-data";
+import type { NewsItem } from "@/lib/site-types";
 
 type ArticlePageProps = {
   params: Promise<{ id: string }>;
 };
 
-type NewsArticle = (typeof newsItems)[number];
+type NewsArticle = NewsItem;
 
 type HeadingItem = {
   id: string;
@@ -17,13 +18,12 @@ type HeadingItem = {
   title: string;
 };
 
-export function generateStaticParams() {
-  return newsItems.map((item) => ({ id: item.id }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { id } = await params;
-  const article = newsItems.find((item) => item.id === id);
+  const data = await getSiteData();
+  const article = data.newsItems.find((item) => item.id === id);
   return {
     title: article ? article.title : "Bài viết",
     description: article?.excerpt,
@@ -32,7 +32,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const { id } = await params;
-  const article = newsItems.find((item) => item.id === id);
+  const data = await getSiteData();
+  const article = data.newsItems.find((item) => item.id === id);
 
   if (!article) {
     return (
@@ -43,10 +44,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   }
 
   const sameProjectArticles = sortNewsByNewest(
-    newsItems.filter((item) => item.id !== article.id && item.projectId === article.projectId),
+    data.newsItems.filter((item) => item.id !== article.id && item.projectId === article.projectId),
   );
-  const fallbackArticles = sortNewsByNewest(newsItems.filter((item) => item.id !== article.id));
+  const fallbackArticles = sortNewsByNewest(data.newsItems.filter((item) => item.id !== article.id));
   const related = (sameProjectArticles.length ? sameProjectArticles : fallbackArticles).slice(0, 3);
+  const articleHtml = sanitizeArticleHtml(article.contentHtml || "");
   const tableOfContents = article.content
     .map((block, index) => getHeadingItem(block, index))
     .filter((item): item is HeadingItem => Boolean(item));
@@ -102,7 +104,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             ) : null}
 
             <div className="grid gap-4">
-              {article.content.map((block, index) => renderArticleBlock(block, index))}
+              {articleHtml ? (
+                <div
+                  className="[&_a]:font-semibold [&_a]:text-masterise-primary [&_blockquote]:border-l-4 [&_blockquote]:border-masterise-primary [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:leading-[1.25] [&_h2]:tracking-normal [&_h2]:text-masterise-ink [&_h3]:mt-3 [&_h3]:text-xl [&_h3]:font-extrabold [&_h3]:leading-[1.25] [&_h3]:tracking-normal [&_h3]:text-masterise-ink [&_li]:ml-5 [&_li]:list-disc [&_p]:text-base [&_p]:leading-7 [&_p]:text-masterise-muted"
+                  dangerouslySetInnerHTML={{ __html: articleHtml }}
+                />
+              ) : (
+                article.content.map((block, index) => renderArticleBlock(block, index))
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 border-t border-masterise-line pt-5">
@@ -123,7 +132,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {related.map((item) => (
-            <NewsCard key={item.id} item={item} />
+            <NewsCard key={item.id} item={item} projects={data.projects} regionMeta={data.regionMeta} />
           ))}
         </div>
       </section>
@@ -191,6 +200,15 @@ function sortNewsByNewest(items: ReadonlyArray<NewsArticle>) {
 function parseNewsDate(date: string) {
   const [day, month, year] = date.split("/").map(Number);
   return new Date(year, month - 1, day).getTime();
+}
+
+function sanitizeArticleHtml(value: string) {
+  return value
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/\s(?:on\w+|style)=("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src)=("|\')\s*javascript:[^"\']*\2/gi, "")
+    .trim();
 }
 
 function toIsoDate(date: string) {

@@ -2,10 +2,10 @@ import "server-only";
 
 import { unstable_noStore as noStore } from "next/cache";
 import { db } from "@/lib/db/client";
-import { projects, storeCategories, stores } from "@/lib/db/schema";
+import { newsItems, projects, storeCategories, stores } from "@/lib/db/schema";
 import { camnangData } from "@/lib/data";
 import { getLocalDemoSiteData, isLocalDemoMode } from "@/lib/local-demo-store";
-import type { Project, SiteData, Store, StoreCategory } from "@/lib/site-types";
+import type { NewsItem, Project, SiteData, Store, StoreCategory } from "@/lib/site-types";
 
 export async function getSiteData(): Promise<SiteData> {
   noStore();
@@ -20,11 +20,19 @@ export async function getSiteData(): Promise<SiteData> {
       db.select().from(storeCategories),
       db.select().from(stores),
     ]);
+    let hasNewsTable = true;
+    const newsRows = await db
+      .select()
+      .from(newsItems)
+      .catch(() => {
+        hasNewsTable = false;
+        return [];
+      });
 
     return {
       fallbackImage: camnangData.fallbackImage,
       regionMeta: camnangData.regionMeta,
-      newsItems: camnangData.newsItems,
+      newsItems: hasNewsTable ? newsRows.map(toNewsItemShape) : camnangData.newsItems,
       projects: projectRows.map(toProjectShape),
       storeCategories: categoryRows.map(toCategoryShape),
       stores: storeRows.map(toStoreShape),
@@ -32,6 +40,24 @@ export async function getSiteData(): Promise<SiteData> {
   } catch {
     return normalizeSiteData(camnangData);
   }
+}
+
+function toNewsItemShape(row: typeof newsItems.$inferSelect): NewsItem {
+  return {
+    id: row.id,
+    title: row.title,
+    projectId: row.projectId,
+    region: row.region,
+    date: row.date,
+    category: row.category,
+    hashtags: row.hashtags ?? [],
+    image: row.image,
+    excerpt: row.excerpt,
+    content: row.content ?? [],
+    contentHtml: row.contentHtml ?? undefined,
+    createdAt: row.createdAt ?? undefined,
+    updatedAt: row.updatedAt ?? undefined,
+  };
 }
 
 function toProjectShape(row: typeof projects.$inferSelect): Project {

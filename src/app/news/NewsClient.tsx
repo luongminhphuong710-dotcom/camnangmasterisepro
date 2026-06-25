@@ -4,8 +4,9 @@ import { ArrowDownUp, ChevronDown, ChevronLeft, ChevronRight, Search } from "luc
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NewsCard } from "@/components/NewsCard";
-import { newsItems } from "@/lib/data";
-import { getProject, normalize } from "@/lib/helpers";
+import { normalize } from "@/lib/helpers";
+import type { SiteData } from "@/lib/site-types";
+import { getProjectFromData } from "@/lib/site-utils";
 
 const pageSize = 12;
 
@@ -20,7 +21,7 @@ const viewCountById: Record<string, number> = {
   "quoc-khanh-ngoi-nha-masterise": 980,
 };
 
-export function NewsClient() {
+export function NewsClient({ data }: { data: SiteData }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");
@@ -28,11 +29,12 @@ export function NewsClient() {
   const [page, setPage] = useState(1);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const newsItems = data.newsItems;
 
   const categoryOptions = useMemo(() => {
     const categories = Array.from(new Set(newsItems.map((item) => item.category)));
     return [{ value: "all", label: "Tất cả" }, ...categories.map((item) => ({ value: item, label: item }))];
-  }, []);
+  }, [newsItems]);
   const sortOptions: { value: SortMode; label: string }[] = [
     { value: "newest", label: "Mới nhất" },
     { value: "oldest", label: "Cũ nhất" },
@@ -46,7 +48,7 @@ export function NewsClient() {
 
     return newsItems
       .filter((item) => {
-        const project = getProject(item.projectId);
+        const project = getProjectFromData(data, item.projectId);
         const searchText = normalize(
           [item.title, item.excerpt, item.category, item.date, item.region, project?.name, project?.city, ...item.hashtags].join(" "),
         );
@@ -54,7 +56,7 @@ export function NewsClient() {
         return tokens.every((token) => searchText.includes(token));
       })
       .slice(0, 7);
-  }, [query]);
+  }, [data, newsItems, query]);
 
   const filteredItems = useMemo(() => {
     return newsItems.filter((item) => {
@@ -62,7 +64,7 @@ export function NewsClient() {
 
       return matchesCategory;
     });
-  }, [category]);
+  }, [category, newsItems]);
 
   const sortedItems = useMemo(() => {
     return [...filteredItems].sort((a, b) => {
@@ -130,7 +132,7 @@ export function NewsClient() {
           {isSuggestionOpen && newsSuggestions.length > 0 ? (
             <div className="search-suggestion-menu" id="newsSearchSuggestions" role="listbox">
               {newsSuggestions.map((item) => {
-                const project = getProject(item.projectId);
+                const project = getProjectFromData(data, item.projectId);
 
                 return (
                   <Link
@@ -228,7 +230,7 @@ export function NewsClient() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {visibleItems.length ? (
-          visibleItems.map((item) => <NewsCard key={item.id} item={item} />)
+          visibleItems.map((item) => <NewsCard key={item.id} item={item} projects={data.projects} regionMeta={data.regionMeta} />)
         ) : (
           <div className="rounded-lg border border-masterise-line bg-white p-6 text-masterise-muted">
             Không tìm thấy bài viết phù hợp.

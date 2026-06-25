@@ -71,6 +71,9 @@ export type NewsItem = {
   image: string;
   excerpt: string;
   content: readonly string[];
+  contentHtml?: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type SiteData = {
