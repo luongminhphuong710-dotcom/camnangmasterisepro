@@ -104,17 +104,23 @@ type FieldConfig = {
     | "vouchers"
     | "reviews"
     | "image"
+    | "smallimage"
     | "gallery"
     | "mapembed"
-    | "richtext";
+    | "richtext"
+    | "tags"
+    | "readonly"
+    | "note";
   helper?: string;
   full?: boolean;
+  span?: 2 | 3;
   rows?: number;
   min?: number;
   max?: number;
   step?: number;
   mode?: ArrayMode;
   options?: Array<{ value: string; label: string }>;
+  format?: "date" | "datetime";
 };
 
 type SelectOption = NonNullable<FieldConfig["options"]>[number];
@@ -206,7 +212,10 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
       if (categoryFilter) items = items.filter((item) => stringValue(item.category) === categoryFilter);
       if (projectFilter) items = items.filter((item) => stringValue(item.projectId) === projectFilter);
     } else if (listSection === "news") {
-      if (projectFilter) items = items.filter((item) => stringValue(item.projectId) === projectFilter);
+      if (categoryFilter) items = items.filter((item) => stringValue(item.category) === categoryFilter);
+      if (projectFilter) {
+        items = items.filter((item) => (projectFilter === "__none" ? !stringValue(item.projectId) : stringValue(item.projectId) === projectFilter));
+      }
     }
     return sortItems(items, sortBySection[listSection]);
   }, [collection, listSection, query, sortBySection, categoryFilter, projectFilter]);
@@ -600,7 +609,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                   <Search size={18} className="text-masterise-primary" aria-hidden />
                   <input
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none"
-                    placeholder={listSection === "stores" ? "Tìm gian hàng..." : "Tìm dự án..."}
+                    placeholder={listSection === "stores" ? "Tìm gian hàng..." : listSection === "news" ? "Tìm bài viết..." : "Tìm dự án..."}
                     value={query}
                     onChange={(event) => {
                       setQuery(event.target.value);
@@ -629,6 +638,31 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                         onChange={(value) => {
                           setProjectFilter(stringValue(value));
                           setPageBySection((current) => ({ ...current, stores: 1 }));
+                        }}
+                      />
+                    </div>
+                  </>
+                ) : activeNav === "news" ? (
+                  <>
+                    <div className="w-[220px]">
+                      <CustomSelect
+                        disabled={false}
+                        options={[{ value: "", label: "Tất cả dự án" }, { value: "__none", label: "Không chọn dự án" }, ...projectOptions(data)]}
+                        value={projectFilter}
+                        onChange={(value) => {
+                          setProjectFilter(stringValue(value));
+                          setPageBySection((current) => ({ ...current, news: 1 }));
+                        }}
+                      />
+                    </div>
+                    <div className="w-[220px]">
+                      <CustomSelect
+                        disabled={false}
+                        options={[{ value: "", label: "Tất cả chuyên mục" }, ...newsCategoryOptions(data)]}
+                        value={categoryFilter}
+                        onChange={(value) => {
+                          setCategoryFilter(stringValue(value));
+                          setPageBySection((current) => ({ ...current, news: 1 }));
                         }}
                       />
                     </div>
@@ -763,7 +797,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
                       onChange={updateSelectedItem}
                     />
                   ) : (
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className={`grid gap-4 ${listSection === "news" ? "md:grid-cols-3" : "md:grid-cols-2"}`}>
                       {fieldsFor(listSection, data).map((field) => (
                         <FieldEditor
                           key={field.key}
@@ -2588,7 +2622,7 @@ function FieldEditor({
   disabled: boolean;
   onChange: (value: CmsValue) => void;
 }) {
-  const className = `grid gap-2 text-sm font-semibold text-masterise-ink ${field.full ? "md:col-span-2" : ""}`;
+  const className = `grid gap-2 text-sm font-semibold text-masterise-ink ${fieldClassName(field)}`;
   const inputClass =
     "min-h-11 rounded-lg border border-masterise-line px-3 text-sm outline-none focus:border-masterise-primary disabled:bg-masterise-surface disabled:text-masterise-muted";
 
@@ -2610,11 +2644,11 @@ function FieldEditor({
     );
   }
 
-  if (field.type === "image") {
+  if (field.type === "image" || field.type === "smallimage") {
     return (
       <div className={className}>
         <span>{field.label}</span>
-        <ImageUploadField value={stringValue(value)} disabled={disabled} token={token} onChange={onChange} />
+        <ImageUploadField value={stringValue(value)} disabled={disabled} token={token} compact={field.type === "smallimage"} onChange={onChange} />
         {field.helper ? <small className="text-xs font-normal leading-5 text-masterise-muted">{field.helper}</small> : null}
       </div>
     );
@@ -2670,6 +2704,32 @@ function FieldEditor({
     );
   }
 
+  if (field.type === "tags") {
+    return (
+      <div className={className}>
+        <span>{field.label}</span>
+        <TagPickerEditor value={tagsValue(value)} options={field.options || []} disabled={disabled} onChange={onChange} />
+        {field.helper ? <small className="text-xs font-normal leading-5 text-masterise-muted">{field.helper}</small> : null}
+      </div>
+    );
+  }
+
+  if (field.type === "readonly") {
+    return (
+      <div className={className}>
+        <span>{field.label}</span>
+        <div className="flex min-h-11 items-center rounded-lg border border-masterise-line bg-masterise-surface px-3 text-sm font-semibold text-masterise-muted">
+          {field.format === "datetime" ? formatCmsDate(value) : stringValue(value) || "-"}
+        </div>
+        {field.helper ? <small className="text-xs font-normal leading-5 text-masterise-muted">{field.helper}</small> : null}
+      </div>
+    );
+  }
+
+  if (field.type === "note") {
+    return field.helper ? <p className={`${fieldClassName(field)} text-xs font-normal leading-5 text-masterise-muted`}>{field.helper}</p> : null;
+  }
+
   return (
     <label className={className}>
       {field.label}
@@ -2698,6 +2758,12 @@ function FieldEditor({
       {field.helper ? <small className="text-xs font-normal leading-5 text-masterise-muted">{field.helper}</small> : null}
     </label>
   );
+}
+
+function fieldClassName(field: FieldConfig) {
+  if (field.span === 3) return "md:col-span-3";
+  if (field.span === 2 || field.full) return "md:col-span-2";
+  return "";
 }
 
 function RichTextEditor({
@@ -3015,15 +3081,99 @@ function CustomSelect({
   );
 }
 
+function TagPickerEditor({
+  disabled,
+  options,
+  value,
+  onChange,
+}: {
+  disabled: boolean;
+  options: SelectOption[];
+  value: string[];
+  onChange: (value: CmsValue) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const selected = value.filter(Boolean);
+  const selectedSet = new Set(selected.map((tag) => normalize(tag)));
+  const availableOptions = options.filter((option) => !selectedSet.has(normalize(option.value)));
+
+  function commitTag(rawValue: string) {
+    const tag = rawValue.trim();
+    if (!tag || selectedSet.has(normalize(tag))) return;
+    onChange([...selected, tag]);
+    setDraft("");
+  }
+
+  function removeTag(tag: string) {
+    onChange(selected.filter((item) => item !== tag));
+  }
+
+  return (
+    <div className="grid gap-3 rounded-lg border border-masterise-line bg-masterise-surface p-3">
+      <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-masterise-line bg-white px-2 py-2">
+        {selected.map((tag) => (
+          <span key={tag} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-masterise-soft px-3 text-xs font-bold text-masterise-primary">
+            {tag}
+            {!disabled ? (
+              <button
+                className="grid h-5 w-5 place-items-center rounded-full text-masterise-primary transition hover:bg-white"
+                type="button"
+                onClick={() => removeTag(tag)}
+                aria-label={`Xóa tag ${tag}`}
+              >
+                <X size={13} aria-hidden />
+              </button>
+            ) : null}
+          </span>
+        ))}
+        <input
+          className="min-h-8 min-w-[160px] flex-1 bg-transparent px-1 text-sm font-semibold outline-none disabled:text-masterise-muted"
+          disabled={disabled}
+          placeholder={selected.length ? "Thêm tag..." : "Nhập tag rồi bấm Enter..."}
+          value={draft}
+          onBlur={() => commitTag(draft)}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              commitTag(draft.replace(/,$/, ""));
+            }
+            if (event.key === "Backspace" && !draft && selected.length) {
+              removeTag(selected[selected.length - 1]);
+            }
+          }}
+        />
+      </div>
+      {availableOptions.length ? (
+        <div className="flex flex-wrap gap-2">
+          {availableOptions.map((option) => (
+            <button
+              key={option.value}
+              className="rounded-full border border-masterise-line bg-white px-3 py-1.5 text-xs font-bold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
+              type="button"
+              disabled={disabled}
+              onClick={() => commitTag(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ImageUploadField({
   disabled,
   token,
   value,
+  compact = false,
   onChange,
 }: {
   disabled: boolean;
   token: string;
   value: string;
+  compact?: boolean;
   onChange: (value: CmsValue) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -3043,13 +3193,13 @@ function ImageUploadField({
   }
 
   return (
-    <div className="grid gap-3 rounded-lg border border-masterise-line bg-masterise-surface p-3">
+    <div className={`grid gap-3 rounded-lg border border-masterise-line bg-masterise-surface p-3 ${compact ? "max-w-[360px]" : ""}`}>
       {value ? (
         <div className="relative aspect-video overflow-hidden rounded-lg border border-masterise-line bg-white">
-          <Image src={value} alt="Ảnh đại diện" fill sizes="(min-width: 768px) 640px, 100vw" className="object-cover" />
+          <Image src={value} alt="Ảnh đại diện" fill sizes={compact ? "360px" : "(min-width: 768px) 640px, 100vw"} className="object-cover" />
         </div>
       ) : (
-        <div className="grid min-h-[180px] place-items-center rounded-lg border border-dashed border-masterise-line bg-white text-sm font-semibold text-masterise-muted">
+        <div className={`grid place-items-center rounded-lg border border-dashed border-masterise-line bg-white text-sm font-semibold text-masterise-muted ${compact ? "aspect-video min-h-0" : "min-h-[180px]"}`}>
           Chưa có ảnh đại diện.
         </div>
       )}
@@ -3102,6 +3252,7 @@ function GalleryUploadField({
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function uploadFiles(files: FileList | File[]) {
     if (disabled) return;
@@ -3198,28 +3349,36 @@ function GalleryUploadField({
         ))}
 
         {!disabled ? (
-          <label
+          <button
             className="grid aspect-[4/2.5] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-bold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
+            type="button"
+            disabled={isUploading}
+            onClick={(event) => {
+              event.stopPropagation();
+              fileInputRef.current?.click();
+            }}
           >
-            <input
-              className="sr-only"
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
-              multiple
-              disabled={isUploading}
-              onChange={(event) => {
-                const files = event.target.files;
-                event.target.value = "";
-                if (files) void uploadFiles(files);
-              }}
-            />
             <span className="grid justify-items-center gap-2">
               {isUploading ? <Loader2 className="animate-spin" size={24} aria-hidden /> : <ImagePlus size={24} aria-hidden />}
               {isUploading ? "Đang xử lý..." : "Thêm ảnh"}
             </span>
-          </label>
+          </button>
         ) : null}
       </div>
+
+      <input
+        ref={fileInputRef}
+        className="hidden"
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif,.jfif,.heic,.heif,.avif,.bmp"
+        multiple
+        disabled={disabled || isUploading}
+        onChange={(event) => {
+          const files = event.target.files ? Array.from(event.target.files) : [];
+          event.target.value = "";
+          if (files.length) void uploadFiles(files);
+        }}
+      />
 
       {!value.length ? (
         <div className="grid min-h-[140px] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-5 text-center text-sm font-semibold text-masterise-muted">
@@ -3701,16 +3860,18 @@ function fieldsFor(section: NavKey, data: SiteData): FieldConfig[] {
 
   if (section === "news") {
     return [
-      { key: "title", label: "Tiêu đề", type: "text", full: true },
-      { key: "id", label: "ID đường dẫn", type: "text", helper: "Ví dụ: tin-tuc-moi." },
-      { key: "projectId", label: "Dự án", type: "select", options: projectOptions(data) },
-      { key: "region", label: "Miền", type: "select", options: regionOptions(data) },
-      { key: "date", label: "Ngày đăng", type: "text", helper: "Định dạng dd/mm/yyyy." },
-      { key: "category", label: "Chuyên mục", type: "text" },
-      { key: "image", label: "Ảnh đại diện", type: "image", full: true },
-      { key: "excerpt", label: "Mô tả ngắn", type: "textarea", full: true, rows: 4 },
-      { key: "hashtags", label: "Hashtag", type: "array", mode: "tags", full: true, rows: 3 },
-      { key: "contentHtml", label: "Nội dung bài viết", type: "richtext", full: true },
+      { key: "image", label: "Ảnh đại diện", type: "smallimage", span: 3, helper: "Preview tỉ lệ 16:9 như ngoài client, hiển thị nhỏ để dễ biên tập." },
+      { key: "title", label: "Tiêu đề", type: "text", span: 3 },
+      { key: "excerpt", label: "Mô tả ngắn", type: "textarea", span: 3, rows: 3 },
+      { key: "id", label: "ID đường dẫn", type: "text", span: 3, helper: "Ví dụ: tin-tuc-moi." },
+      { key: "category", label: "Chuyên mục", type: "select", options: newsCategoryOptions(data) },
+      { key: "projectId", label: "Dự án", type: "select", options: optionalProjectOptions(data) },
+      { key: "region", label: "Miền", type: "select", options: optionalRegionOptions(data) },
+      { key: "newsScopeHelp", label: "", type: "note", span: 3, helper: "Dự án và miền không bắt buộc. Bỏ trống nếu bài viết không thuộc dự án hoặc khu vực cụ thể." },
+      { key: "contentHtml", label: "Nội dung bài viết", type: "richtext", span: 3 },
+      { key: "hashtags", label: "Hashtag", type: "tags", span: 3, options: newsTagOptions(data), helper: "Chọn tag có sẵn hoặc nhập tag mới rồi bấm Enter." },
+      { key: "createdAt", label: "Ngày đăng", type: "readonly", format: "datetime" },
+      { key: "updatedAt", label: "Ngày update chỉnh sửa", type: "readonly", format: "datetime" },
     ];
   }
 
@@ -3787,18 +3948,22 @@ function normalizeStoreItem(item: CmsItem): CmsItem {
 }
 
 function normalizeNewsItem(item: CmsItem): CmsItem {
+  const displayDate = stringValue(item.date) || todayDisplayDate();
+  const createdAt = stringValue(item.createdAt) || isoFromDisplayDate(displayDate);
   return {
     ...item,
     title: stringValue(item.title),
     projectId: stringValue(item.projectId),
-    region: stringValue(item.region) || "north",
-    date: stringValue(item.date) || todayDisplayDate(),
+    region: stringValue(item.region),
+    date: displayDate,
     category: stringValue(item.category) || "Tin tức",
     image: stringValue(item.image),
     excerpt: stringValue(item.excerpt),
     hashtags: Array.isArray(item.hashtags) ? item.hashtags.map((tag) => String(tag ?? "")).filter(Boolean) : [],
     content: Array.isArray(item.content) ? item.content.map((block) => String(block ?? "")).filter(Boolean) : [],
     contentHtml: sanitizeRichTextHtml(stringValue(item.contentHtml)),
+    createdAt,
+    updatedAt: stringValue(item.updatedAt),
   };
 }
 
@@ -3862,10 +4027,10 @@ function createNewsItem(data: SiteData): CmsItem {
   return {
     id: uniqueId("bai-viet-moi", data.newsItems),
     title: "Bài viết mới",
-    projectId: firstProjectId(data),
-    region: "north",
+    projectId: "",
+    region: "",
     date: todayDisplayDate(),
-    category: "Tin tức",
+    category: firstNewsCategory(data),
     hashtags: [],
     image: "",
     excerpt: "",
@@ -3886,14 +4051,49 @@ function regionOptions(data: SiteData) {
     .map(([value, meta]) => ({ value, label: meta.label || value }));
 }
 
+function optionalRegionOptions(data: SiteData) {
+  return [{ value: "", label: "Không chọn miền" }, ...regionOptions(data)];
+}
+
 function projectOptions(data: SiteData) {
   return data.projects.map((project) => ({ value: stringValue(project.id), label: stringValue(project.name || project.id) }));
+}
+
+function optionalProjectOptions(data: SiteData) {
+  return [{ value: "", label: "Không chọn dự án" }, ...projectOptions(data)];
 }
 
 function categoryOptions(data: SiteData) {
   return data.storeCategories
     .filter((category) => stringValue(category.id) !== "all")
     .map((category) => ({ value: stringValue(category.id), label: stringValue(category.label || category.id) }));
+}
+
+function newsCategoryOptions(data: SiteData) {
+  const categories = uniqueStrings(data.newsItems.map((item) => stringValue(item.category))).filter(Boolean);
+  return categories.length ? categories.map((category) => ({ value: category, label: category })) : [{ value: "Tin tức", label: "Tin tức" }];
+}
+
+function newsTagOptions(data: SiteData) {
+  const tags = uniqueStrings(data.newsItems.flatMap((item) => (Array.isArray(item.hashtags) ? item.hashtags.map((tag) => String(tag)) : [])));
+  return tags.map((tag) => ({ value: tag, label: tag }));
+}
+
+function firstNewsCategory(data: SiteData) {
+  return newsCategoryOptions(data)[0]?.value || "Tin tức";
+}
+
+function uniqueStrings(values: string[]) {
+  const seen = new Set<string>();
+  const result: string[] = [];
+  values.forEach((value) => {
+    const trimmed = value.trim();
+    const key = normalize(trimmed);
+    if (!trimmed || seen.has(key)) return;
+    seen.add(key);
+    result.push(trimmed);
+  });
+  return result;
 }
 
 function sectionTitle(section: NavKey) {
@@ -3933,6 +4133,10 @@ function arrayToText(value: CmsValue, mode: ArrayMode) {
   if (mode === "tags") return list.join(", ");
   if (mode === "paragraphs") return list.join("\n\n");
   return list.join("\n");
+}
+
+function tagsValue(value: CmsValue) {
+  return Array.isArray(value) ? value.map((item) => String(item ?? "").trim()).filter(Boolean) : [];
 }
 
 function textToArray(value: string, mode: ArrayMode) {
@@ -4185,6 +4389,12 @@ function todayDisplayDate() {
     year: "numeric",
     timeZone: "Asia/Ho_Chi_Minh",
   }).format(new Date());
+}
+
+function isoFromDisplayDate(value: string) {
+  const [day, month, year] = value.split("/").map(Number);
+  if (!day || !month || !year) return nowIso();
+  return new Date(Date.UTC(year, month - 1, day)).toISOString();
 }
 
 function publicItemPath(section: ListNavKey, itemId: string) {
