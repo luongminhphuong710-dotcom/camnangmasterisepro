@@ -38,7 +38,14 @@ export function normalize(value: unknown): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/đ/g, "d")
+    .replace(/\u0111/g, "d")
     .trim();
+}
+
+export function slugify(value: unknown): string {
+  return normalize(value)
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 export function distanceInKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }): number {

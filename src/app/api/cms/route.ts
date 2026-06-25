@@ -4,6 +4,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { uploadCmsImage } from "@/lib/cloudinary";
 import { db } from "@/lib/db/client";
 import { cmsUsers, projects, storeCategories, stores } from "@/lib/db/schema";
+import {
+  isLocalDemoMode,
+  loadLocalDemoUsers,
+  saveLocalDemoSiteData,
+  saveLocalDemoUpload,
+  saveLocalDemoUsers,
+} from "@/lib/local-demo-store";
 import { getSiteData } from "@/lib/runtime-data";
 
 export const runtime = "nodejs";
@@ -122,7 +129,7 @@ export async function DELETE(request: NextRequest) {
     if (!target) throw statusError("Không tìm thấy tài khoản.", 404);
     if (target.role === "super_admin") throw statusError("Không thể xóa super admin mặc định.", 400);
 
-    await db.delete(cmsUsers).where(eq(cmsUsers.username, username));
+    await deleteUser(username);
     const nextUsers = await loadUsers();
     return json({ users: publicUsers(nextUsers), message: "Đã xóa tài khoản." });
   } catch (error) {
@@ -134,6 +141,15 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
   const incomingStores = Array.isArray(data.stores) ? data.stores : [];
   const incomingProjects = Array.isArray(data.projects) ? data.projects : [];
   const incomingCategories = Array.isArray(data.storeCategories) ? data.storeCategories : [];
+
+  if (isLocalDemoMode()) {
+    await saveLocalDemoSiteData({
+      stores: incomingStores,
+      projects: incomingProjects,
+      storeCategories: incomingCategories,
+    });
+    return;
+  }
 
   await db.transaction(async (tx) => {
     if (incomingStores.length) {
@@ -182,7 +198,7 @@ function buildConflictUpdateSet(table: Parameters<typeof getTableColumns>[0]) {
 
 async function handleLogin(request: NextRequest) {
   const config = getConfig();
-  ensureConfigured(config, ["sessionSecret", "databaseUrl"]);
+  ensureConfigured(config, ["sessionSecret"]);
   const users = await loadUsers();
   if (!users.length) {
     throw statusError("Thiếu cấu hình tài khoản CMS.", 500);
@@ -197,7 +213,7 @@ async function handleLogin(request: NextRequest) {
     throw statusError("Tên đăng nhập hoặc mật khẩu không đúng.", 401);
   }
 
-  await db.update(cmsUsers).set({ lastLoginAt: new Date().toISOString() }).where(eq(cmsUsers.username, user.username));
+  await updateUser(user.username, { lastLoginAt: new Date().toISOString() });
 
   const expiresAt = Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS;
   const token = createToken({ sub: user.username, role: user.role, exp: expiresAt }, config.sessionSecret);
@@ -229,7 +245,7 @@ async function handleUserMutation(request: NextRequest, session: SessionPayload)
     if (role === "super_admin") throw statusError("Super admin mặc định chỉ có một tài khoản.", 400);
     if (users.some((user) => user.username === username)) throw statusError("Tên đăng nhập đã tồn tại.", 400);
     const temporaryPassword = generateTemporaryPassword();
-    await db.insert(cmsUsers).values({ username, role, passwordHash: hashPassword(temporaryPassword) });
+    await createUser({ username, role, passwordHash: hashPassword(temporaryPassword) });
     const nextUsers = await loadUsers();
     return json({ users: publicUsers(nextUsers), temporaryPassword, message: "Đã tạo tài khoản với mật khẩu tạm." });
   }
@@ -253,7 +269,7 @@ async function handleUserMutation(request: NextRequest, session: SessionPayload)
   }
 
   if (Object.keys(updates).length) {
-    await db.update(cmsUsers).set(updates).where(eq(cmsUsers.username, originalUsername));
+    await updateUser(originalUsername, updates);
   }
   const nextUsers = await loadUsers();
   return json({ users: publicUsers(nextUsers), message: "Đã cập nhật tài khoản." });
@@ -280,6 +296,11 @@ async function handleImageUpload(request: NextRequest) {
   const buffer = Buffer.from(await file.arrayBuffer());
   const filenameHint = `${Date.now()}-${slugifyFileName(file.name)}`;
 
+  if (isLocalDemoMode()) {
+    const url = await saveLocalDemoUpload(buffer, filenameHint, file.name);
+    return json({ url });
+  }
+
   try {
     const url = await uploadCmsImage(buffer, filenameHint);
     return json({ url });
@@ -290,7 +311,7 @@ async function handleImageUpload(request: NextRequest) {
 
 function requireSession(request: NextRequest) {
   const config = getConfig();
-  ensureConfigured(config, ["sessionSecret", "databaseUrl"]);
+  ensureConfigured(config, ["sessionSecret"]);
   const token = getBearerToken(request);
   const session = token ? verifyToken(token, config.sessionSecret) : null;
   if (!session) {
@@ -344,6 +365,11 @@ function getBootstrapUsers(config: CmsConfig): CmsUser[] {
 }
 
 async function loadUsers(): Promise<CmsUser[]> {
+  if (isLocalDemoMode()) {
+    const config = getConfig();
+    return loadLocalDemoUsers(() => ensureSingleSuperAdmin(getBootstrapUsers(config))) as Promise<CmsUser[]>;
+  }
+
   const rows = await db.select().from(cmsUsers);
   if (rows.length) return rows.map(toCmsUserShape);
 
@@ -353,6 +379,36 @@ async function loadUsers(): Promise<CmsUser[]> {
     await db.insert(cmsUsers).values(bootstrapUsers).onConflictDoNothing();
   }
   return bootstrapUsers;
+}
+
+async function createUser(user: CmsUser) {
+  if (isLocalDemoMode()) {
+    const users = await loadUsers();
+    await saveLocalDemoUsers([...users, user]);
+    return;
+  }
+
+  await db.insert(cmsUsers).values(user);
+}
+
+async function updateUser(username: string, updates: Partial<CmsUser>) {
+  if (isLocalDemoMode()) {
+    const users = await loadUsers();
+    await saveLocalDemoUsers(users.map((user) => (user.username === username ? { ...user, ...updates } : user)));
+    return;
+  }
+
+  await db.update(cmsUsers).set(updates).where(eq(cmsUsers.username, username));
+}
+
+async function deleteUser(username: string) {
+  if (isLocalDemoMode()) {
+    const users = await loadUsers();
+    await saveLocalDemoUsers(users.filter((user) => user.username !== username));
+    return;
+  }
+
+  await db.delete(cmsUsers).where(eq(cmsUsers.username, username));
 }
 
 function toCmsUserShape(row: typeof cmsUsers.$inferSelect): CmsUser {

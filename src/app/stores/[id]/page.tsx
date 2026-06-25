@@ -20,7 +20,7 @@ import { StoreHeroGallery } from "@/components/StoreHeroGallery";
 import { StoreVoucherTickets } from "@/components/StoreVoucherTickets";
 import { getSiteData } from "@/lib/runtime-data";
 import type { Store as StoreItem } from "@/lib/site-types";
-import { getCategoryFromList, getProjectFromData } from "@/lib/site-utils";
+import { getCategoryFromList, getProjectFromData, slugify } from "@/lib/site-utils";
 
 type StorePageProps = {
   params: Promise<{ id: string }>;
@@ -51,7 +51,7 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: StorePageProps): Promise<Metadata> {
   const { id } = await params;
   const data = await getSiteData();
-  const store = data.stores.find((item) => item.id === id);
+  const store = findStoreByPath(data.stores, id);
   return {
     title: store ? store.name : "Gian hàng",
     description: store?.note,
@@ -62,7 +62,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const { id } = await params;
   const data = await getSiteData();
   const { fallbackImage, stores, storeCategories } = data;
-  const store = stores.find((item) => item.id === id);
+  const store = findStoreByPath(stores, id);
 
   if (!store) {
     return (
@@ -366,6 +366,12 @@ function storeRating(store: StoreItem) {
   const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
   if (!reviews.length) return 0;
   return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
+}
+
+function findStoreByPath(stores: readonly StoreItem[], pathValue: string) {
+  const decodedValue = decodeURIComponent(pathValue);
+  const slugValue = slugify(decodedValue);
+  return stores.find((item) => item.id === decodedValue) ?? stores.find((item) => slugify(item.name) === slugValue);
 }
 
 function googleMapsEmbedSrc(value?: string) {

@@ -381,6 +381,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     setDetailId(id);
     window.history.pushState(null, "", adminPath(listSection, "edit", id));
     setIsDirty(true);
+    pushToast(listSection === "stores" ? "Đã tạo gian hàng mới. Bấm Lưu để lưu lên CMS." : "Đã tạo trang dự án mới. Bấm Lưu để lưu lên CMS.");
     setStatus({ type: "success", message: listSection === "stores" ? "Đã tạo gian hàng mới." : "Đã tạo trang dự án mới." });
   }
 

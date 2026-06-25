@@ -4,10 +4,15 @@ import { unstable_noStore as noStore } from "next/cache";
 import { db } from "@/lib/db/client";
 import { projects, storeCategories, stores } from "@/lib/db/schema";
 import { camnangData } from "@/lib/data";
+import { getLocalDemoSiteData, isLocalDemoMode } from "@/lib/local-demo-store";
 import type { Project, SiteData, Store, StoreCategory } from "@/lib/site-types";
 
 export async function getSiteData(): Promise<SiteData> {
   noStore();
+
+  if (isLocalDemoMode()) {
+    return getLocalDemoSiteData();
+  }
 
   try {
     const [projectRows, categoryRows, storeRows] = await Promise.all([
