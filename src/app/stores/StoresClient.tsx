@@ -8,6 +8,7 @@ import type { SiteData, Store } from "@/lib/site-types";
 import { getCategoryFromList, getProjectFromData, normalize } from "@/lib/site-utils";
 
 const pageSize = 12;
+const hiddenClientCategoryIds = new Set(["unassigned"]);
 
 type StoresClientProps = {
   data: SiteData;
@@ -17,8 +18,16 @@ type StoresClientProps = {
 
 export function StoresClient({ data, initialCategory = "all", initialProjectId = "all" }: StoresClientProps) {
   const { fallbackImage, projects, storeCategories, stores } = data;
+  const visibleStoreCategories = useMemo(
+    () => storeCategories.filter((category) => !isHiddenClientCategory(category.id, category.label)),
+    [storeCategories],
+  );
+  const visibleStores = useMemo(
+    () => stores.filter((store) => !isHiddenClientCategory(store.category, getCategoryFromList(storeCategories, store.category).label)),
+    [storeCategories, stores],
+  );
   const initialProject = getProjectFromData(data, initialProjectId);
-  const hasInitialCategory = storeCategories.some((item) => item.id === initialCategory);
+  const hasInitialCategory = visibleStoreCategories.some((item) => item.id === initialCategory);
   const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
   const [category, setCategory] = useState(hasInitialCategory ? initialCategory : "all");
   const [query, setQuery] = useState("");
@@ -44,7 +53,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
     if (!tokens.length) return [];
 
-    return stores
+    return visibleStores
       .filter((store) => {
         const project = getProjectFromData(data, store.projectId);
         const storeCategory = getCategoryFromList(storeCategories, store.category);
@@ -54,10 +63,10 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
         return tokens.every((token) => searchText.includes(token));
       })
       .slice(0, 7);
-  }, [data, query, storeCategories, stores]);
+  }, [data, query, storeCategories, visibleStores]);
 
   const items = useMemo(() => {
-    return stores
+    return visibleStores
       .filter((store) => {
         const project = getProjectFromData(data, store.projectId);
         if (!project) return false;
@@ -66,7 +75,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
         return matchesProject && matchesCategory;
       })
       .sort((a, b) => storeRating(b) - storeRating(a));
-  }, [category, data, projectId, stores]);
+  }, [category, data, projectId, visibleStores]);
 
   const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -250,7 +259,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
       ) : null}
 
       <div className="chip-row mb-8">
-        {storeCategories.map((item) => (
+        {visibleStoreCategories.map((item) => (
           <button
             key={item.id}
             className={`chip ${category === item.id ? "active" : ""}`}
@@ -337,4 +346,8 @@ function storeRating(store: Store) {
   const reviews = "reviews" in store && Array.isArray(store.reviews) ? store.reviews : [];
   if (!reviews.length) return 0;
   return reviews.reduce((total, review) => total + Number(review.rating || 0), 0) / reviews.length;
+}
+
+function isHiddenClientCategory(id: string, label = "") {
+  return hiddenClientCategoryIds.has(id) || normalize(label) === "chua xac dinh";
 }
