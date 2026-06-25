@@ -15,6 +15,7 @@ export function NewsCard({ item, projects = staticProjects, regionMeta = staticR
   const project = projects === staticProjects ? getProject(item.projectId) : getProjectFromData({ projects }, item.projectId);
   const fallbackRegionLabel = regionMeta === staticRegionMeta ? regionLabel(item.region) : regionLabelFromMeta(regionMeta, item.region);
   const metaLabel = project?.name || fallbackRegionLabel;
+  const createdDate = formatCreatedDate(item.createdAt, item.date);
 
   return (
     <Link className="news-card flex h-full flex-col" href={`/tin-tuc/${item.id}`}>
@@ -25,14 +26,22 @@ export function NewsCard({ item, projects = staticProjects, regionMeta = staticR
         <span className="news-card-eyebrow eyebrow mb-0">{metaLabel ? `${item.category} / ${metaLabel}` : item.category}</span>
         <h3 className="news-card-title">{item.title}</h3>
         <p className="news-card-excerpt body-text text-sm">{item.excerpt}</p>
-        <div className="news-card-tags">
-          {item.hashtags.slice(0, 3).map((tag) => (
-            <small className="tag" key={tag}>
-              {tag}
-            </small>
-          ))}
-        </div>
+        <time className="news-card-date" dateTime={item.createdAt || item.date}>
+          {createdDate}
+        </time>
       </div>
     </Link>
   );
+}
+
+function formatCreatedDate(createdAt?: string, fallbackDate?: string) {
+  if (!createdAt) return fallbackDate || "";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return fallbackDate || createdAt;
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 }

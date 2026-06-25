@@ -388,6 +388,7 @@ a {
   .news-card-excerpt {
     display: -webkit-box;
     overflow: hidden;
+    text-overflow: ellipsis;
     -webkit-box-orient: vertical;
   }
 
@@ -407,25 +408,13 @@ a {
   }
 
   .news-card-excerpt {
-    min-height: 66px;
-    -webkit-line-clamp: 3;
+    min-height: 44px;
+    -webkit-line-clamp: 2;
   }
 
-  .news-card-tags {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-    overflow: hidden;
-    min-height: 32px;
+  .news-card-date {
+    @apply text-sm font-semibold text-masterise-primary;
     margin-top: auto;
-  }
-
-  .news-card-tags .tag {
-    min-width: 0;
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .project-body {
