@@ -399,8 +399,8 @@ a {
 
   .news-card-title {
     @apply text-masterise-ink;
-    min-height: 72px;
-    font-size: 24px;
+    min-height: 75px;
+    font-size: 20px;
     font-weight: 800;
     line-height: 1.25;
     letter-spacing: 0;
