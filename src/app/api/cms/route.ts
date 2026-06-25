@@ -151,39 +151,37 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
     return;
   }
 
-  await db.transaction(async (tx) => {
-    if (incomingStores.length) {
-      await tx
-        .insert(stores)
-        .values(incomingStores)
-        .onConflictDoUpdate({ target: stores.id, set: buildConflictUpdateSet(stores) });
-      await tx.delete(stores).where(notInArray(stores.id, incomingStores.map((store: { id: string }) => store.id)));
-    } else {
-      await tx.delete(stores);
-    }
+  if (incomingStores.length) {
+    await db
+      .insert(stores)
+      .values(incomingStores)
+      .onConflictDoUpdate({ target: stores.id, set: buildConflictUpdateSet(stores) });
+    await db.delete(stores).where(notInArray(stores.id, incomingStores.map((store: { id: string }) => store.id)));
+  } else {
+    await db.delete(stores);
+  }
 
-    if (incomingProjects.length) {
-      await tx
-        .insert(projects)
-        .values(incomingProjects)
-        .onConflictDoUpdate({ target: projects.id, set: buildConflictUpdateSet(projects) });
-      await tx.delete(projects).where(notInArray(projects.id, incomingProjects.map((project: { id: string }) => project.id)));
-    } else {
-      await tx.delete(projects);
-    }
+  if (incomingProjects.length) {
+    await db
+      .insert(projects)
+      .values(incomingProjects)
+      .onConflictDoUpdate({ target: projects.id, set: buildConflictUpdateSet(projects) });
+    await db.delete(projects).where(notInArray(projects.id, incomingProjects.map((project: { id: string }) => project.id)));
+  } else {
+    await db.delete(projects);
+  }
 
-    if (incomingCategories.length) {
-      await tx
-        .insert(storeCategories)
-        .values(incomingCategories)
-        .onConflictDoUpdate({ target: storeCategories.id, set: buildConflictUpdateSet(storeCategories) });
-      await tx
-        .delete(storeCategories)
-        .where(notInArray(storeCategories.id, incomingCategories.map((category: { id: string }) => category.id)));
-    } else {
-      await tx.delete(storeCategories);
-    }
-  });
+  if (incomingCategories.length) {
+    await db
+      .insert(storeCategories)
+      .values(incomingCategories)
+      .onConflictDoUpdate({ target: storeCategories.id, set: buildConflictUpdateSet(storeCategories) });
+    await db
+      .delete(storeCategories)
+      .where(notInArray(storeCategories.id, incomingCategories.map((category: { id: string }) => category.id)));
+  } else {
+    await db.delete(storeCategories);
+  }
 }
 
 function buildConflictUpdateSet(table: Parameters<typeof getTableColumns>[0]) {
