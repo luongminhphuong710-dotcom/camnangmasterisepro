@@ -296,7 +296,9 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
       setPassword("");
       await loadFromApi(nextSession.token);
     } catch (error) {
-      setStatus({ type: "error", message: errorMessage(error) });
+      const message = errorMessage(error);
+      setStatus({ type: "error", message });
+      pushToast(message, "error");
     } finally {
       setIsBusy(false);
     }
@@ -304,11 +306,15 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
   async function saveData(overrideData?: SiteData) {
     if (!session?.token) {
-      setStatus({ type: "error", message: "Bạn cần đăng nhập trước khi lưu." });
+      const message = "Bạn cần đăng nhập trước khi lưu.";
+      setStatus({ type: "error", message });
+      pushToast(message, "error");
       return;
     }
     if (!canWrite) {
-      setStatus({ type: "error", message: "Role hiện tại chỉ có quyền xem." });
+      const message = "Tài khoản hiện tại chỉ có quyền xem.";
+      setStatus({ type: "error", message });
+      pushToast(message, "error");
       return;
     }
 
@@ -317,12 +323,15 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     setIsBusy(true);
     setStatus({ type: "loading", message: "Đang lưu dữ liệu..." });
     try {
-      await apiRequest("data", { method: "PUT", token: session.token, body: { data: payload } });
+      const result = await apiRequest<{ message?: string }>("data", { method: "PUT", token: session.token, body: { data: payload } });
       setIsDirty(false);
-      setStatus({ type: "success", message: "Đã lưu. Thay đổi đã có hiệu lực ngay trên website." });
-      pushToast("Đã lưu thành công.");
+      const message = result.message || "Đã lưu. Thay đổi đã có hiệu lực ngay trên website.";
+      setStatus({ type: "success", message });
+      pushToast(message);
     } catch (error) {
-      setStatus({ type: "error", message: errorMessage(error) });
+      const message = errorMessage(error);
+      setStatus({ type: "error", message });
+      pushToast(message, "error");
     } finally {
       setIsBusy(false);
     }
