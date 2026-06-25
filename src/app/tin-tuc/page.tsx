@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SectionHeading } from "@/components/SectionHeading";
 import { toNewsClientData } from "@/lib/client-data";
 import { getSiteData } from "@/lib/runtime-data";
@@ -10,12 +11,7 @@ export const metadata = seoMetadata({
   path: "/tin-tuc",
 });
 
-type NewsPageProps = {
-  searchParams: Promise<{ project?: string }>;
-};
-
-export default async function NewsPage({ searchParams }: NewsPageProps) {
-  const params = await searchParams;
+export default async function NewsPage() {
   const data = await getSiteData();
 
   return (
@@ -27,7 +23,9 @@ export default async function NewsPage({ searchParams }: NewsPageProps) {
         description="Theo dõi nhanh các thông báo, sự kiện và tiến độ dự án tại các khu đô thị Masterise."
       />
 
-      <NewsClient data={toNewsClientData(data)} initialProjectId={params.project} />
+      <Suspense fallback={<div className="rounded-lg bg-white p-6">Đang tải tin tức...</div>}>
+        <NewsClient data={toNewsClientData(data)} />
+      </Suspense>
     </main>
   );
 }

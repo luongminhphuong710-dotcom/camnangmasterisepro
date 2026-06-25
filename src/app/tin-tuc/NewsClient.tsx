@@ -2,6 +2,7 @@
 
 import { ArrowDownUp, Building2, ChevronDown, ChevronLeft, ChevronRight, FolderOpen, Search } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { NewsCard } from "@/components/NewsCard";
 import { normalize } from "@/lib/helpers";
@@ -18,8 +19,10 @@ type NewsClientProps = {
 };
 
 export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) {
+  const searchParams = useSearchParams();
+  const urlProjectId = searchParams.get("project") || initialProjectId;
   const [query, setQuery] = useState("");
-  const initialProject = getProjectFromData(data, initialProjectId);
+  const initialProject = getProjectFromData(data, urlProjectId);
   const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
   const [category, setCategory] = useState("all");
   const [sortMode, setSortMode] = useState<SortMode>("newest");

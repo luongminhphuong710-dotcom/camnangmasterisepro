@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, Store as StoreIcon, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StoreCard } from "@/components/StoreCard";
@@ -17,6 +18,9 @@ type StoresClientProps = {
 };
 
 export function StoresClient({ data, initialCategory = "all", initialProjectId = "all" }: StoresClientProps) {
+  const searchParams = useSearchParams();
+  const urlCategory = searchParams.get("category") || initialCategory;
+  const urlProjectId = searchParams.get("project") || initialProjectId;
   const { fallbackImage, projects, storeCategories, stores } = data;
   const visibleStoreCategories = useMemo(
     () => storeCategories.filter((category) => !isHiddenClientCategory(category.id, category.label)),
@@ -26,10 +30,10 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
     () => stores.filter((store) => !isHiddenClientCategory(store.category, getCategoryFromList(storeCategories, store.category).label)),
     [storeCategories, stores],
   );
-  const initialProject = getProjectFromData(data, initialProjectId);
-  const hasInitialCategory = visibleStoreCategories.some((item) => item.id === initialCategory);
+  const initialProject = getProjectFromData(data, urlProjectId);
+  const hasInitialCategory = visibleStoreCategories.some((item) => item.id === urlCategory);
   const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
-  const [category, setCategory] = useState(hasInitialCategory ? initialCategory : "all");
+  const [category, setCategory] = useState(hasInitialCategory ? urlCategory : "all");
   const [query, setQuery] = useState("");
   const [projectQuery, setProjectQuery] = useState("");
   const [page, setPage] = useState(1);

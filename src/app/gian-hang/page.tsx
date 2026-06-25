@@ -5,18 +5,13 @@ import { toStoresClientData } from "@/lib/client-data";
 import { getSiteData } from "@/lib/runtime-data";
 import { seoMetadata } from "@/lib/seo";
 
-type StoresPageProps = {
-  searchParams: Promise<{ category?: string; project?: string }>;
-};
-
 export const metadata = seoMetadata({
   title: "Gian hàng Masterise",
   description: "Tìm kiếm gian hàng, dịch vụ và tiện ích cư dân Masterise theo dự án, danh mục và nhu cầu sử dụng.",
   path: "/gian-hang",
 });
 
-export default async function StoresPage({ searchParams }: StoresPageProps) {
-  const params = await searchParams;
+export default async function StoresPage() {
   const data = await getSiteData();
 
   return (
@@ -28,7 +23,7 @@ export default async function StoresPage({ searchParams }: StoresPageProps) {
         description="Chọn dự án hoặc loại dịch vụ để xem đúng danh sách bạn cần."
       />
       <Suspense fallback={<div className="rounded-lg bg-white p-6">Đang tải gian hàng...</div>}>
-        <StoresClient data={toStoresClientData(data)} initialCategory={params.category} initialProjectId={params.project} />
+        <StoresClient data={toStoresClientData(data)} />
       </Suspense>
     </main>
   );
