@@ -228,6 +228,10 @@ function normalizeHomeSettings(value: unknown) {
     metaTitle: String(source.metaTitle || "").trim(),
     metaDescription: String(source.metaDescription || "").trim(),
     headBannerImage: String(source.headBannerImage || "").trim(),
+    communityUrl: String(source.communityUrl || "").trim(),
+    facebookUrl: String(source.facebookUrl || "").trim(),
+    contactAddress: String(source.contactAddress || "").trim(),
+    contactPhone: String(source.contactPhone || "").trim(),
   };
 }
 

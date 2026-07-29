@@ -91,6 +91,10 @@ export type SiteHomeSettings = {
   metaTitle?: string;
   metaDescription?: string;
   headBannerImage?: string;
+  communityUrl?: string;
+  facebookUrl?: string;
+  contactAddress?: string;
+  contactPhone?: string;
 };
 
 export type SiteData = {

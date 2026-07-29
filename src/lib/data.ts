@@ -6,7 +6,11 @@ export const camnangData = {
     "footerLogo": "",
     "metaTitle": "Cẩm Nang Masterise | Nhà tôi ở Masterise",
     "metaDescription": "Cẩm nang cư dân Masterise: tra cứu dự án theo miền, thông tin dự án, gian hàng và tin tức cần biết.",
-    "headBannerImage": "https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg"
+    "headBannerImage": "https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg",
+    "communityUrl": "https://www.facebook.com/groups/nhatoiomasterise/?ref=share&mibextid=wwXIfr&rdid=JJS7ZUwlGkdHCBA1&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fg%2F1ESLX4FN6y%2F%3Fmibextid%3DwwXIfr%26_rdc%3D2%26_rdr%23",
+    "facebookUrl": "https://www.facebook.com/groups/nhatoiomasterise/?ref=share&mibextid=wwXIfr&rdid=JJS7ZUwlGkdHCBA1&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fg%2F1ESLX4FN6y%2F%3Fmibextid%3DwwXIfr%26_rdc%3D2%26_rdr%23",
+    "contactAddress": "Timecity - Hà Nội",
+    "contactPhone": "0988 458 783"
   },
   "regionMeta": {
     "all": {

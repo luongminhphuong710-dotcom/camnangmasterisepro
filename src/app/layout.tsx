@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro, Playfair_Display } from "next/font/google";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
+import { getSiteData } from "@/lib/runtime-data";
 import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
@@ -31,12 +32,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+  const settings = (await getSiteData()).homeSettings;
   return (
     <html lang="vi">
       <body className={`${beVietnamPro.variable} ${playfairDisplay.variable}`}>
-        <Header />
+        <Header communityUrl={settings?.communityUrl || undefined} logoUrl={settings?.headerLogo || settings?.logo || undefined} />
         {children}
-        <Footer />
+        <Footer communityUrl={settings?.communityUrl || undefined} facebookUrl={settings?.facebookUrl || undefined} logoUrl={settings?.footerLogo || settings?.logo || undefined} contactAddress={settings?.contactAddress || undefined} contactPhone={settings?.contactPhone || undefined} />
       </body>
     </html>
   );

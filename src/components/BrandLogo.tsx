@@ -1,18 +1,23 @@
 type BrandLogoProps = {
   variant?: "light" | "dark";
   className?: string;
+  src?: string;
 };
 
-export function BrandLogo({ variant = "light", className = "" }: BrandLogoProps) {
+const defaultLogoSrc = "/brand/camnangmasterise-logo.png";
+
+export function BrandLogo({ variant = "light", className = "", src }: BrandLogoProps) {
+  const logoSrc = src?.trim() || defaultLogoSrc;
+  const isDefaultLogo = logoSrc === defaultLogoSrc;
   const isDarkSurface = variant === "dark";
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src="/brand/camnangmasterise-logo.png"
+      src={logoSrc}
       alt="camnangmasterise"
       className={`brand-wordmark brand-wordmark-${variant} ${className}`}
-      style={isDarkSurface ? { filter: "brightness(0) invert(1)" } : undefined}
+      style={isDefaultLogo && isDarkSurface ? { filter: "brightness(0) invert(1)" } : undefined}
     />
   );
 }

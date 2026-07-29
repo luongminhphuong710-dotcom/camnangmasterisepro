@@ -1008,6 +1008,34 @@ function HomeSettingsPanel({
           </div>
         </div>
 
+        <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold text-masterise-ink">Liên kết cộng đồng</h3>
+            <p className="mt-1 text-sm leading-6 text-masterise-muted">Dùng cho tab Cộng đồng trên header và liên kết Facebook ở footer.</p>
+          </div>
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            Link Cộng đồng
+            <input className={inputClass} disabled={!canWrite} type="url" value={stringValue(settings.communityUrl)} onChange={(event) => onChange("communityUrl", event.target.value)} />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            Link Facebook ở footer
+            <input className={inputClass} disabled={!canWrite} type="url" value={stringValue(settings.facebookUrl)} onChange={(event) => onChange("facebookUrl", event.target.value)} />
+          </label>
+        </div>
+        <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <h3 className="text-lg font-semibold text-masterise-ink">Thông tin liên hệ</h3>
+            <p className="mt-1 text-sm leading-6 text-masterise-muted">Hiển thị ở footer của website.</p>
+          </div>
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            Địa chỉ hiển thị ở footer
+            <input className={inputClass} disabled={!canWrite} value={stringValue(settings.contactAddress)} onChange={(event) => onChange("contactAddress", event.target.value)} />
+          </label>
+          <label className="grid gap-2 text-sm font-semibold text-masterise-ink">
+            Hotline
+            <input className={inputClass} disabled={!canWrite} type="tel" value={stringValue(settings.contactPhone)} onChange={(event) => onChange("contactPhone", event.target.value)} />
+          </label>
+        </div>
         <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4">
           <div>
             <h3 className="text-lg font-semibold text-masterise-ink">Ảnh head banner</h3>
@@ -4217,6 +4245,10 @@ function normalizeHomeSettings(value: unknown): CmsItem {
     headBannerImage:
       stringValue(source.headBannerImage) ||
       "https://gland.com.vn/wp-content/uploads/2022/07/vinhomes-ocean-park1-gia-lam-ha-noi-45.jpg",
+    communityUrl: stringValue(source.communityUrl) || "https://www.facebook.com/groups/nhatoiomasterise/?ref=share&mibextid=wwXIfr&rdid=JJS7ZUwlGkdHCBA1&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fg%2F1ESLX4FN6y%2F%3Fmibextid%3DwwXIfr%26_rdc%3D2%26_rdr%23",
+    facebookUrl: stringValue(source.facebookUrl) || "https://www.facebook.com/groups/nhatoiomasterise/?ref=share&mibextid=wwXIfr&rdid=JJS7ZUwlGkdHCBA1&share_url=https%3A%2F%2Fwww.facebook.com%2Fshare%2Fg%2F1ESLX4FN6y%2F%3Fmibextid%3DwwXIfr%26_rdc%3D2%26_rdr%23",
+    contactAddress: stringValue(source.contactAddress) || "Timecity - Hà Nội",
+    contactPhone: stringValue(source.contactPhone) || "0988 458 783",
   };
 }
 
