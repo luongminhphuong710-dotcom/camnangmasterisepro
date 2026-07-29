@@ -229,9 +229,9 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
   }
 
   return (
-    <section className="grid gap-6">
-      <div className="grid gap-5 rounded-lg border border-masterise-line bg-white p-5 shadow-sm">
-        <p className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-normal text-masterise-primary">
+    <section className="store-review-box grid gap-6">
+      <div className="review-form-panel grid gap-5 rounded-lg border border-masterise-line bg-white p-5 shadow-sm">
+        <p className="flex items-center gap-2 text-xl font-semibold uppercase tracking-normal text-masterise-primary">
           <MessageSquareText size={22} aria-hidden className="shrink-0" />
           Chia sẻ trải nghiệm của bạn
         </p>
@@ -244,7 +244,7 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     key={star}
-                    className="grid h-11 w-11 place-items-center rounded-full text-masterise-primary transition hover:bg-masterise-soft focus:bg-masterise-soft focus:outline-none"
+                    className="review-star-button grid h-11 w-11 place-items-center rounded-full text-masterise-primary transition hover:bg-masterise-soft focus:bg-masterise-soft focus:outline-none"
                     type="button"
                     role="radio"
                     aria-checked={rating === star}
@@ -299,7 +299,7 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
                 return (
                   <label
                     key={slotIndex}
-                    className="relative grid h-20 w-28 cursor-pointer place-items-center overflow-hidden rounded-md border border-dashed border-masterise-line bg-masterise-surface text-center text-xs font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
+                    className="review-upload-slot relative grid h-20 w-28 cursor-pointer place-items-center overflow-hidden rounded-md border border-dashed border-masterise-line bg-masterise-surface text-center text-xs font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
                   >
                     {image ? (
                       <>
@@ -351,14 +351,14 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
         )}
       </div>
 
-      <div className="grid gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-sm">
+      <div className="review-list-panel grid gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="flex items-center gap-2 text-xl font-extrabold uppercase tracking-normal text-masterise-primary">
+          <p className="flex items-center gap-2 text-xl font-semibold uppercase tracking-normal text-masterise-primary">
             <Star size={22} aria-hidden className="shrink-0" />
             Đánh giá gần đây
           </p>
-          <div className="flex items-center gap-3 rounded-lg bg-masterise-surface px-4 py-3 text-masterise-primary">
-            <span className="text-3xl font-extrabold leading-none">{averageRating.toFixed(1)}</span>
+          <div className="review-score flex items-center gap-3 rounded-lg bg-masterise-surface px-4 py-3 text-masterise-primary">
+            <span className="text-3xl font-semibold leading-none">{averageRating.toFixed(1)}</span>
             <span className="grid gap-1">
               <span className="flex items-center gap-1" aria-label={`${averageRating.toFixed(1)} trên 5 sao`}>
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -382,10 +382,10 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
                   <span className="flex min-w-0 flex-wrap items-center gap-2">
                     <strong>{review.name}</strong>
                     {review.isAnonymous || isGeneratedAnonymousName(review.name) ? (
-                      <span className="rounded-full bg-[#e4e0da] px-2.5 py-1 text-xs font-bold text-masterise-muted">Ẩn danh</span>
+                      <span className="rounded-full bg-[#e4e0da] px-2.5 py-1 text-xs font-semibold text-masterise-muted">Ẩn danh</span>
                     ) : null}
                   </span>
-                  <span className="flex items-center gap-1 text-base font-bold text-masterise-primary">
+                  <span className="flex items-center gap-1 text-base font-semibold text-masterise-primary">
                     <Star size={18} aria-hidden className="fill-masterise-primary text-masterise-primary" />
                     {review.rating}/5
                   </span>
@@ -419,7 +419,7 @@ export function StoreReviewBox({ initialReviews = [], storeId }: StoreReviewBoxP
       {showModerationNotice ? (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/55 p-4" role="dialog" aria-modal="true">
           <div className="max-w-md rounded-lg bg-white p-5 shadow-masterise">
-            <p className="text-lg font-extrabold text-masterise-ink">Ảnh đang chờ duyệt</p>
+            <p className="text-lg font-semibold text-masterise-ink">Ảnh đang chờ duyệt</p>
             <p className="body-text mt-2 text-sm">
               Để đảm bảo hình ảnh an toàn tới người xem, đội ngũ của chúng tôi sẽ duyệt đánh giá trong 24h.
             </p>

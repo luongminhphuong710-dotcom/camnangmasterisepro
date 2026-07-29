@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandLogo } from "@/components/BrandLogo";
 import {
   ArrowLeft,
   ArrowDown,
@@ -213,8 +214,9 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
   const collection = data[collectionKey];
   const selectedId = detailId || getSelectedId(listSection, collection, selectedIds);
   const selectedItem = collection.find((item) => stringValue(item.id) === selectedId) || (mode === "list" ? collection[0] : undefined);
-  const canWrite = session ? ["super_admin", "admin"].includes(session.role) : false;
-  const canDelete = session ? ["super_admin", "admin"].includes(session.role) : false;
+  const canWrite = Boolean(session);
+  const canDelete = Boolean(session);
+  const canManageStructure = session ? ["super_admin", "admin"].includes(session.role) : false;
 
   const filteredItems = useMemo(() => {
     const text = normalize(query);
@@ -501,27 +503,12 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
   if (!session) {
     return (
-      <main className="min-h-screen bg-masterise-surface">
-        <section className="page-shell grid min-h-screen content-center gap-5 py-8 lg:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="grid content-center gap-6">
-            <div>
-              <p className="eyebrow">CMS Cẩm Nang Masterise</p>
-              <h1 className="h1 max-w-3xl">Quản trị gian hàng và dự án</h1>
-              <p className="body-text mt-4 max-w-2xl">
-                Nền hiện tại là Next.js App Router. CMS dùng API server-side kết nối Neon (database) và Cloudinary (lưu ảnh), phân quyền theo role.
-              </p>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Capability title="Super admin" detail="Toàn quyền tạo, sửa, xóa và lưu." />
-              <Capability title="Admin" detail="Tạo, sửa và lưu nội dung." />
-              <Capability title="Nhân viên" detail="Đăng nhập xem dữ liệu vận hành." />
-            </div>
-          </div>
-
-          <form className="grid content-start gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-masterise" onSubmit={login}>
+      <main className="cms-login min-h-screen bg-masterise-surface">
+        <section className="page-shell flex min-h-screen items-center justify-center py-8">
+          <form className="grid w-full max-w-md content-start gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-masterise" onSubmit={login}>
             <ShieldCheck className="text-masterise-primary" size={34} aria-hidden />
             <div>
-              <h2 className="text-2xl font-extrabold">Đăng nhập CMS</h2>
+              <h2 className="text-2xl font-semibold">Đăng nhập CMS</h2>
               <p className="mt-2 text-sm leading-6 text-masterise-muted">Dùng tài khoản được cấu hình trong biến môi trường.</p>
             </div>
             <label className="grid gap-2 text-sm font-semibold text-masterise-ink">
@@ -556,26 +543,22 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f1ea]">
+    <main className="cms-shell min-h-screen bg-[#f5f1ea]">
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
-        <aside className="border-b border-masterise-line bg-masterise-ink p-4 text-white lg:border-b-0 lg:border-r">
-          <div className="mb-6 flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-lg bg-white text-sm font-extrabold text-masterise-primary">CM</span>
-            <div>
-              <strong className="block leading-tight">CMS</strong>
-              <small className="text-white/65">Cẩm Nang Masterise</small>
-            </div>
+        <aside className="cms-sidebar border-b border-masterise-line bg-masterise-ink p-4 text-white lg:border-b-0 lg:border-r">
+          <div className="mb-7 border-b border-white/10 pb-5">
+            <BrandLogo variant="dark" className="brand-wordmark-admin" />
           </div>
 
           <nav className="grid gap-2" aria-label="CMS navigation">
-            {navItems.map((item) => {
+            {navItems.filter((item) => canManageStructure || (item.key !== "categories" && item.key !== "permissions")).map((item) => {
               const Icon = item.icon;
               const isActive = item.key === activeNav;
               return (
                 <button
                   key={item.key}
-                  className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm font-bold transition ${
+                  className={`flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold transition ${
                     isActive ? "bg-white text-masterise-primary" : "text-white/75 hover:bg-white/10 hover:text-white"
                   }`}
                   type="button"
@@ -591,11 +574,11 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
           <div className="mt-6 rounded-lg border border-white/10 bg-white/5 p-3 text-sm">
             <span className="block text-white/60">Đang đăng nhập</span>
             <strong className="mt-1 block truncate">{session.user}</strong>
-            <span className="mt-2 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold">{roleLabels[session.role]}</span>
+            <span className="mt-2 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{roleLabels[session.role]}</span>
           </div>
 
           <button
-            className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-bold text-white/80 transition hover:bg-white hover:text-masterise-ink"
+            className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 px-3 text-sm font-semibold text-white/80 transition hover:bg-white hover:text-masterise-ink"
             type="button"
             onClick={logout}
           >
@@ -604,9 +587,9 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
           </button>
         </aside>
 
-        <section className="grid content-start gap-5 p-4 md:p-6">
+        <section className="cms-content grid content-start gap-5 p-4 md:p-6">
           <header className="flex flex-wrap items-center justify-between gap-3">
-            <h1 className="text-2xl font-extrabold">{sectionTitle(activeNav)}</h1>
+            <h1 className="text-2xl font-semibold">{sectionTitle(activeNav)}</h1>
           </header>
 
           {activeNav === "home" ? (
@@ -619,14 +602,14 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
               onChange={updateHomeSetting}
               onSave={() => void saveData()}
             />
-          ) : activeNav === "permissions" ? (
+          ) : activeNav === "permissions" && canManageStructure ? (
             <PermissionsPanel session={session} pushToast={pushToast} />
-          ) : activeNav === "categories" ? (
+          ) : activeNav === "categories" && canManageStructure ? (
             <CategoriesPanel
               categories={data.storeCategories}
               stores={data.stores}
-              canWrite={canWrite}
-              canDelete={canDelete}
+              canWrite={canManageStructure}
+              canDelete={canManageStructure}
               isBusy={isBusy}
               onSaveCategories={(nextCategories) => void saveData({ ...data, storeCategories: nextCategories })}
               onDeleteCategory={(categoryId) => {
@@ -645,7 +628,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
           ) : mode === "list" ? (
             <section className="rounded-lg border border-masterise-line bg-white shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-masterise-line p-4">
-                <label className="flex min-h-11 min-w-[260px] flex-1 items-center gap-2 rounded-lg border border-masterise-line px-3">
+                <label className="cms-list-search flex min-h-11 min-w-[260px] flex-1 items-center gap-2 rounded-lg border border-masterise-line px-3">
                   <Search size={18} className="text-masterise-primary" aria-hidden />
                   <input
                     className="min-w-0 flex-1 bg-transparent text-sm outline-none"
@@ -812,17 +795,17 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
               <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-masterise-line pb-4">
                 <div>
                   <button
-                    className="mb-3 inline-flex items-center gap-2 text-sm font-bold text-masterise-primary"
+                    className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-masterise-primary"
                     type="button"
                   onClick={() => navigateTo(listSection)}
                   >
                     <ArrowLeft size={17} aria-hidden />
                     Quay lại danh sách
                   </button>
-                  <p className="text-xs font-bold uppercase text-masterise-primary">
+                  <p className="text-xs font-semibold uppercase text-masterise-primary">
                     {mode === "edit" ? "Chỉnh sửa" : "Thông tin chi tiết"}
                   </p>
-                  <h2 className="text-2xl font-extrabold">{itemTitle(listSection, selectedItem)}</h2>
+                  <h2 className="text-2xl font-semibold">{itemTitle(listSection, selectedItem)}</h2>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <a
@@ -950,8 +933,8 @@ function HomeSettingsPanel({
     <section className="rounded-lg border border-masterise-line bg-white p-4 shadow-sm md:p-5">
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3 border-b border-masterise-line pb-4">
         <div>
-          <p className="text-xs font-bold uppercase text-masterise-primary">Cấu hình trang chủ</p>
-          <h2 className="text-2xl font-extrabold">Trang home</h2>
+          <p className="text-xs font-semibold uppercase text-masterise-primary">Cấu hình trang chủ</p>
+          <h2 className="text-2xl font-semibold">Trang home</h2>
           <p className="mt-2 text-sm leading-6 text-masterise-muted">
             Chỉnh logo, SEO meta và ảnh head banner đang hiển thị ở trang chủ.
           </p>
@@ -967,7 +950,7 @@ function HomeSettingsPanel({
       <div className="grid gap-5">
         <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-3">
           <div className="md:col-span-3">
-            <h3 className="text-lg font-extrabold text-masterise-ink">SEO meta</h3>
+            <h3 className="text-lg font-semibold text-masterise-ink">SEO meta</h3>
           </div>
 
           <label className="grid gap-2 text-sm font-semibold text-masterise-ink md:col-span-3">
@@ -994,7 +977,7 @@ function HomeSettingsPanel({
 
         <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4 md:grid-cols-2">
           <div className="md:col-span-2">
-            <h3 className="text-lg font-extrabold text-masterise-ink">Logo</h3>
+            <h3 className="text-lg font-semibold text-masterise-ink">Logo</h3>
             <p className="mt-1 text-sm leading-6 text-masterise-muted">
               Header và footer dùng 2 logo riêng. Nếu bỏ trống, website dùng ký hiệu CM mặc định.
             </p>
@@ -1027,7 +1010,7 @@ function HomeSettingsPanel({
 
         <div className="grid gap-4 rounded-lg border border-masterise-line bg-masterise-surface p-4">
           <div>
-            <h3 className="text-lg font-extrabold text-masterise-ink">Ảnh head banner</h3>
+            <h3 className="text-lg font-semibold text-masterise-ink">Ảnh head banner</h3>
             <p className="mt-1 text-sm leading-6 text-masterise-muted">Ảnh banner đầu trang home, nên ưu tiên ảnh ngang rộng.</p>
           </div>
 
@@ -1052,15 +1035,6 @@ function HomeSettingsPanel({
         ) : null}
       </div>
     </section>
-  );
-}
-
-function Capability({ title, detail }: { title: string; detail: string }) {
-  return (
-    <article className="rounded-lg border border-masterise-line bg-white p-4 shadow-sm">
-      <strong className="block text-sm text-masterise-ink">{title}</strong>
-      <span className="mt-2 block text-xs leading-5 text-masterise-muted">{detail}</span>
-    </article>
   );
 }
 
@@ -1252,39 +1226,13 @@ function PermissionsPanel({ session, pushToast }: { session: Session; pushToast:
     }
   }
 
-  const roleRows: Array<{ role: Role; description: string; manage: boolean; delete: boolean; view: boolean }> = [
-    { role: "super_admin", description: "Toàn quyền vận hành CMS và quản lý tài khoản.", manage: true, delete: true, view: true },
-    { role: "admin", description: "Quản trị nội dung gian hàng và dự án hằng ngày.", manage: true, delete: true, view: true },
-    { role: "employee", description: "Theo dõi dữ liệu và tự đổi mật khẩu cá nhân.", manage: false, delete: false, view: true },
-  ];
-
   return (
     <section className="grid gap-5">
-      <div className="grid gap-3 md:grid-cols-3">
-        {roleRows.map((row) => (
-          <article key={row.role} className="rounded-lg border border-masterise-line bg-white p-4 shadow-sm">
-            <div className="mb-4 flex items-start gap-3">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-masterise-soft text-masterise-primary">
-                <ShieldCheck size={22} aria-hidden />
-              </span>
-              <div>
-                <h2 className="text-lg font-extrabold">{roleLabels[row.role]}</h2>
-                <p className="mt-1 text-sm leading-5 text-masterise-muted">{row.description}</p>
-              </div>
-            </div>
-            <div className="grid gap-2 text-sm">
-              <PermissionPill enabled={row.manage} label="Tạo / sửa / lưu" />
-              <PermissionPill enabled={row.delete} label="Xóa dữ liệu" />
-              <PermissionPill enabled={row.view} label="Xem CMS" />
-            </div>
-          </article>
-        ))}
-      </div>
 
       <div className="rounded-lg border border-masterise-line bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-masterise-line p-4">
           <div>
-            <h2 className="text-lg font-extrabold">Tên đăng nhập CMS</h2>
+            <h2 className="text-lg font-semibold">Tên đăng nhập CMS</h2>
             <p className="mt-1 text-sm text-masterise-muted">Mật khẩu được lưu dạng hash, không hiển thị lại sau khi tạo.</p>
           </div>
           {canManageUsers ? (
@@ -1308,7 +1256,7 @@ function PermissionsPanel({ session, pushToast }: { session: Session; pushToast:
               <tbody>
                 {users.map((user) => (
                   <tr key={user.username} className="border-t border-masterise-line">
-                    <td className="px-4 py-3 font-bold">{user.username}</td>
+                    <td className="px-4 py-3 font-semibold">{user.username}</td>
                     <td className="px-4 py-3">{roleLabels[user.role]}</td>
                     <td className="px-4 py-3">{formatCmsDate(user.lastLoginAt)}</td>
                     <td className="px-4 py-3 text-right">
@@ -1354,7 +1302,7 @@ function PermissionsPanel({ session, pushToast }: { session: Session; pushToast:
           >
             <div className="flex items-start justify-between gap-4 border-b border-masterise-line pb-4">
               <div>
-                <h3 className="text-lg font-extrabold">{formMode === "create" ? "Tạo tài khoản" : `Chỉnh sửa ${username}`}</h3>
+                <h3 className="text-lg font-semibold">{formMode === "create" ? "Tạo tài khoản" : `Chỉnh sửa ${username}`}</h3>
                 <p className="mt-1 text-sm text-masterise-muted">
                   {formMode === "create"
                     ? "Tài khoản mới sẽ được cấp mật khẩu tạm, người dùng có thể tự đổi sau khi đăng nhập."
@@ -1425,8 +1373,8 @@ function PermissionsPanel({ session, pushToast }: { session: Session; pushToast:
             </div>
             {temporaryPassword ? (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-                <span className="block font-bold">Mật khẩu tạm</span>
-                <code className="mt-2 block rounded-md bg-white px-3 py-2 font-bold text-masterise-ink">{temporaryPassword}</code>
+                <span className="block font-semibold">Mật khẩu tạm</span>
+                <code className="mt-2 block rounded-md bg-white px-3 py-2 font-semibold text-masterise-ink">{temporaryPassword}</code>
               </div>
             ) : null}
             {message ? <p className="rounded-lg border border-masterise-line bg-masterise-surface px-3 py-2 text-sm text-masterise-muted">{message}</p> : null}
@@ -1512,7 +1460,7 @@ function CategoriesPanel({
       <div className="rounded-lg border border-masterise-line bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-masterise-line p-4">
           <div>
-            <h2 className="text-lg font-extrabold">Danh mục gian hàng</h2>
+            <h2 className="text-lg font-semibold">Danh mục gian hàng</h2>
             <p className="mt-1 text-sm text-masterise-muted">Quản lý các danh mục dùng để phân loại gian hàng.</p>
           </div>
           {canWrite ? (
@@ -1538,7 +1486,7 @@ function CategoriesPanel({
                 const isUnassigned = id === UNASSIGNED_CATEGORY_ID;
                 return (
                   <tr key={id} className="border-t border-masterise-line">
-                    <td className="px-4 py-3 font-bold text-masterise-ink">
+                    <td className="px-4 py-3 font-semibold text-masterise-ink">
                       <button
                         className="text-left underline-offset-4 transition hover:text-masterise-primary hover:underline"
                         type="button"
@@ -1547,7 +1495,7 @@ function CategoriesPanel({
                         {stringValue(category.label) || id}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right font-bold">{storeCountFor(id)}</td>
+                    <td className="px-4 py-3 text-right font-semibold">{storeCountFor(id)}</td>
                     <td className="px-4 py-3 text-right">
                       {!canWrite || isUnassigned ? (
                         "-"
@@ -1595,7 +1543,7 @@ function CategoriesPanel({
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 p-4" role="dialog" aria-modal="true">
           <form className="grid w-full max-w-[420px] gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-2xl" onSubmit={saveCategory}>
             <div className="flex items-start justify-between gap-4 border-b border-masterise-line pb-4">
-              <h3 className="text-lg font-extrabold">{modalState.mode === "create" ? "Thêm danh mục" : "Chỉnh sửa danh mục"}</h3>
+              <h3 className="text-lg font-semibold">{modalState.mode === "create" ? "Thêm danh mục" : "Chỉnh sửa danh mục"}</h3>
               <button
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-masterise-line text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
                 type="button"
@@ -1633,22 +1581,6 @@ function CategoriesPanel({
   );
 }
 
-function PermissionPill({ enabled, label }: { enabled: boolean; label: string }) {
-  const Icon = enabled ? CheckCircle2 : XCircle;
-  return (
-    <span
-      className={`flex min-h-10 items-center justify-between gap-3 rounded-lg border px-3 font-semibold ${
-        enabled
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-masterise-line bg-masterise-surface text-masterise-muted"
-      }`}
-    >
-      {label}
-      <Icon size={17} aria-hidden />
-    </span>
-  );
-}
-
 function DetailView({ section, item, data, token }: { section: ListNavKey; item: CmsItem; data: SiteData; token: string }) {
   const fields = fieldsFor(section, data);
   const fieldByKey = new Map(fields.map((field) => [field.key, field]));
@@ -1659,7 +1591,7 @@ function DetailView({ section, item, data, token }: { section: ListNavKey; item:
       {sections.map((sectionConfig) => (
         <section key={sectionConfig.title} className="rounded-lg border border-masterise-line bg-white shadow-sm">
           <div className="border-b border-masterise-line bg-masterise-surface px-4 py-3">
-            <h3 className="text-base font-extrabold text-masterise-ink">{sectionConfig.title}</h3>
+            <h3 className="text-base font-semibold text-masterise-ink">{sectionConfig.title}</h3>
             <p className="mt-1 text-sm text-masterise-muted">{sectionConfig.description}</p>
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-3">
@@ -1765,7 +1697,7 @@ function TableSummary({
           >
             Back
           </button>
-          <span className="rounded-full border border-masterise-line px-3 py-2 text-xs font-bold text-masterise-ink">
+          <span className="rounded-full border border-masterise-line px-3 py-2 text-xs font-semibold text-masterise-ink">
             {currentPage} / {totalPages}
           </span>
           <button
@@ -1798,7 +1730,7 @@ function SortHeader({
 
   return (
     <button
-      className={`inline-flex items-center gap-1.5 text-xs font-extrabold uppercase transition hover:text-masterise-primary ${
+      className={`inline-flex items-center gap-1.5 text-xs font-semibold uppercase transition hover:text-masterise-primary ${
         isActive ? "text-masterise-primary" : "text-masterise-muted"
       }`}
       type="button"
@@ -1940,7 +1872,7 @@ function StoresTable({
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="inline-flex items-center justify-end gap-1.5 font-bold">
+                    <span className="inline-flex items-center justify-end gap-1.5 font-semibold">
                       <Star className="fill-masterise-primary text-masterise-primary" size={15} aria-hidden />
                       {stringValue(item.rating) || "-"}({stringValue(item.reviewCount) || 0})
                     </span>
@@ -2446,7 +2378,7 @@ function StoreEditSections({
         <section key={section.title} className="rounded-lg border border-masterise-line bg-white shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-masterise-line bg-masterise-surface px-4 py-3">
             <div>
-              <h3 className="text-base font-extrabold text-masterise-ink">{section.title}</h3>
+              <h3 className="text-base font-semibold text-masterise-ink">{section.title}</h3>
               <p className="mt-1 text-sm text-masterise-muted">{section.description}</p>
             </div>
             {section.isVoucherSection && !disabled ? (
@@ -2503,7 +2435,7 @@ function StoreEditSections({
           <form className="grid w-full max-w-[560px] gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-2xl" onSubmit={saveVoucher}>
             <div className="flex items-start justify-between gap-4 border-b border-masterise-line pb-4">
               <div>
-                <h3 className="text-lg font-extrabold">{voucherModalIndex === -1 ? "Thêm ưu đãi" : "Chỉnh sửa ưu đãi"}</h3>
+                <h3 className="text-lg font-semibold">{voucherModalIndex === -1 ? "Thêm ưu đãi" : "Chỉnh sửa ưu đãi"}</h3>
                 <p className="mt-1 text-sm text-masterise-muted">Nhập thông tin voucher, sau khi lưu sẽ hiển thị trong bảng bên dưới.</p>
               </div>
               <button
@@ -2551,7 +2483,7 @@ function StoreEditSections({
           <form className="grid w-full max-w-[560px] gap-4 rounded-lg border border-masterise-line bg-white p-5 shadow-2xl" onSubmit={saveReview}>
             <div className="flex items-start justify-between gap-4 border-b border-masterise-line pb-4">
               <div>
-                <h3 className="text-lg font-extrabold">{reviewModalIndex === -1 ? "Thêm đánh giá" : "Chỉnh sửa đánh giá"}</h3>
+                <h3 className="text-lg font-semibold">{reviewModalIndex === -1 ? "Thêm đánh giá" : "Chỉnh sửa đánh giá"}</h3>
                 <p className="mt-1 text-sm text-masterise-muted">Sau khi lưu, điểm đánh giá và số lượt đánh giá sẽ được tự động tính lại.</p>
               </div>
               <button
@@ -2633,14 +2565,14 @@ function ReviewStatsSummary({ reviews }: { reviews: CmsValue }) {
   return (
     <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
       <div className="rounded-lg border border-masterise-line bg-masterise-surface p-4">
-        <span className="block text-xs font-bold uppercase text-masterise-muted">Đánh giá tự tính</span>
+        <span className="block text-xs font-semibold uppercase text-masterise-muted">Đánh giá tự tính</span>
         <strong className="mt-2 flex items-center gap-2 text-2xl text-masterise-ink">
           <Star className="fill-masterise-primary text-masterise-primary" size={22} aria-hidden />
           {stats.rating.toFixed(1)}
         </strong>
       </div>
       <div className="rounded-lg border border-masterise-line bg-masterise-surface p-4">
-        <span className="block text-xs font-bold uppercase text-masterise-muted">Số lượt đánh giá</span>
+        <span className="block text-xs font-semibold uppercase text-masterise-muted">Số lượt đánh giá</span>
         <strong className="mt-2 block text-2xl text-masterise-ink">{stats.count}</strong>
       </div>
     </div>
@@ -2672,7 +2604,7 @@ function VoucherTable({
           <tbody>
             {vouchers.map((voucher, index) => (
               <tr key={`${voucher.code}-${index}`} className="border-t border-masterise-line">
-                <td className="px-4 py-3 font-bold text-masterise-ink">{voucher.code || "-"}</td>
+                <td className="px-4 py-3 font-semibold text-masterise-ink">{voucher.code || "-"}</td>
                 <td className="max-w-[280px] px-4 py-3 text-masterise-muted">
                   <span className="line-clamp-2">{voucher.description || "-"}</span>
                 </td>
@@ -2744,9 +2676,9 @@ function ReviewTable({
           <tbody>
             {reviews.map((review, index) => (
               <tr key={`${review.name}-${index}`} className="border-t border-masterise-line">
-                <td className="px-4 py-3 font-bold text-masterise-ink">{review.name || "-"}</td>
+                <td className="px-4 py-3 font-semibold text-masterise-ink">{review.name || "-"}</td>
                 <td className="px-4 py-3 text-right">
-                  <span className="inline-flex items-center justify-end gap-1.5 font-bold">
+                  <span className="inline-flex items-center justify-end gap-1.5 font-semibold">
                     <Star className="fill-masterise-primary text-masterise-primary" size={15} aria-hidden />
                     {review.rating}
                   </span>
@@ -3187,7 +3119,7 @@ function MapEmbedEditor({
         <span className="mt-1 block">
           Mở Google Maps, tìm địa điểm, chọn <strong>Chia sẻ</strong>, chuyển sang tab <strong>Nhúng bản đồ</strong>, rồi bấm{" "}
           <strong>Sao chép HTML</strong>. Dán toàn bộ đoạn iframe vào ô này. Nếu chỉ muốn dán link, lấy phần nằm trong{" "}
-          <code className="rounded bg-white px-1 font-bold text-masterise-primary">src=&quot;...&quot;</code> của iframe.
+          <code className="rounded bg-white px-1 font-semibold text-masterise-primary">src=&quot;...&quot;</code> của iframe.
         </span>
         {helper ? <span className="mt-1 block">{helper}</span> : null}
       </div>
@@ -3324,7 +3256,7 @@ function TagPickerEditor({
     <div className="grid gap-3 rounded-lg border border-masterise-line bg-masterise-surface p-3">
       <div className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-masterise-line bg-white px-2 py-2">
         {selected.map((tag) => (
-          <span key={tag} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-masterise-soft px-3 text-xs font-bold text-masterise-primary">
+          <span key={tag} className="inline-flex min-h-8 items-center gap-1.5 rounded-full bg-masterise-soft px-3 text-xs font-semibold text-masterise-primary">
             {tag}
             {!disabled ? (
               <button
@@ -3361,7 +3293,7 @@ function TagPickerEditor({
           {availableOptions.map((option) => (
             <button
               key={option.value}
-              className="rounded-full border border-masterise-line bg-white px-3 py-1.5 text-xs font-bold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
+              className="rounded-full border border-masterise-line bg-white px-3 py-1.5 text-xs font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-primary"
               type="button"
               disabled={disabled}
               onClick={() => commitTag(option.value)}
@@ -3644,7 +3576,7 @@ function GalleryUploadField({
             onDragEnd={() => setDragIndex(null)}
           >
             <Image src={image} alt={`Ảnh gian hàng ${index + 1}`} fill sizes="(min-width: 1536px) 220px, (min-width: 1024px) 25vw, 50vw" className="object-cover" />
-            <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-extrabold text-masterise-primary shadow-sm">
+            <span className="absolute left-2 top-2 rounded-full bg-white px-2 py-1 text-xs font-semibold text-masterise-primary shadow-sm">
               {index === 0 ? "Đại diện" : index + 1}
             </span>
             {!disabled ? (
@@ -3662,7 +3594,7 @@ function GalleryUploadField({
 
         {!disabled ? (
           <button
-            className="grid aspect-[4/2.5] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-bold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
+            className="grid aspect-[4/2.5] place-items-center rounded-lg border border-dashed border-masterise-line bg-white p-3 text-center text-sm font-semibold text-masterise-primary transition hover:border-masterise-primary hover:bg-masterise-soft"
             type="button"
             disabled={isUploading}
             onClick={(event) => {

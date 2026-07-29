@@ -19,7 +19,12 @@ type HeadingItem = {
   title: string;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const data = await getSiteData();
+  return data.newsItems.map(({ id }) => ({ id }));
+}
 
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const { id } = await params;
@@ -78,29 +83,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   };
 
   return (
-    <main className="grid gap-8">
+    <main className="article-detail-page grid gap-8">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(articleJsonLd) }} />
-      <section className="bg-white py-8 md:py-12">
-        <div className="page-shell grid gap-10">
-          <article className="mx-auto grid max-w-5xl gap-8">
-            <div className="grid max-w-4xl gap-5 text-left">
-              <nav aria-label="Breadcrumb bài viết" className="flex min-w-0 items-center gap-2 text-xs font-extrabold uppercase text-masterise-primary">
-                <Link className="shrink-0 transition hover:text-masterise-dark" href="/tin-tuc">
-                  Tin tức
-                </Link>
-                <span aria-hidden className="shrink-0 text-masterise-muted">
-                  /
-                </span>
-                <span className="min-w-0 truncate" aria-current="page" title={article.title}>
-                  {article.title}
-                </span>
-              </nav>
-              <h1 className="text-[2rem] font-bold leading-[1.16] tracking-normal text-masterise-ink md:text-[42px]">{article.title}</h1>
-              <p className="body-text">{article.excerpt}</p>
-              <time className="text-sm font-semibold text-masterise-primary" dateTime={toIsoDate(article.date)}>
-                {article.date}
-              </time>
-            </div>
+      <section className="py-8 md:py-12">
+        <div className="page-shell">
+          <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start lg:gap-x-12 lg:gap-y-8">
+            <article className="grid gap-8 lg:col-start-1">
             <figure className="relative aspect-video overflow-hidden rounded-lg bg-masterise-soft">
               <Image
                 src={article.image}
@@ -112,41 +100,61 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 className="object-cover"
               />
             </figure>
-          </article>
-
-          <div className="mx-auto grid max-w-3xl gap-8">
-            {tableOfContents.length ? (
-              <nav className="rounded-lg border border-masterise-line bg-masterise-surface p-4" aria-label="Mục lục bài viết">
-                <p className="mb-3 text-sm font-extrabold uppercase tracking-normal text-masterise-primary">Mục lục</p>
-                <ol className="grid gap-2 text-sm font-semibold text-masterise-muted">
-                  {tableOfContents.map((item) => (
-                    <li className={item.level === 3 ? "pl-4" : ""} key={item.id}>
-                      <a className="transition hover:text-masterise-primary" href={`#${item.id}`}>
-                        {item.title}
-                      </a>
-                    </li>
-                  ))}
-                </ol>
+              <div className="grid max-w-4xl gap-5 text-left">
+              <nav aria-label="Breadcrumb bài viết" className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-masterise-primary">
+                <Link className="shrink-0 transition hover:text-masterise-dark" href="/tin-tuc">
+                  Tin tức
+                </Link>
+                <span aria-hidden className="shrink-0 text-masterise-muted">
+                  /
+                </span>
+                <span className="min-w-0 truncate" aria-current="page" title={article.title}>
+                  {article.title}
+                </span>
               </nav>
+              <h1 className="text-[2rem] font-semibold leading-[1.16] tracking-normal text-masterise-ink md:text-[42px]">{article.title}</h1>
+              <p className="body-text">{article.excerpt}</p>
+              <time className="text-sm font-semibold text-masterise-primary" dateTime={toIsoDate(article.date)}>
+                {article.date}
+              </time>
+            </div>
+            </article>
+            {tableOfContents.length ? (
+              <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-24" aria-label="Điều hướng bài viết">
+                <nav className="rounded-lg border border-masterise-line bg-masterise-surface p-4" aria-label="Mục lục bài viết">
+                  <p className="mb-3 text-sm font-semibold uppercase tracking-normal text-masterise-primary">Mục lục</p>
+                  <ol className="grid gap-2 text-sm font-semibold leading-6 text-masterise-muted">
+                    {tableOfContents.map((item) => (
+                      <li className={item.level === 3 ? "pl-4" : ""} key={item.id}>
+                        <a className="transition hover:text-masterise-primary" href={`#${item.id}`}>
+                          {item.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                </nav>
+              </aside>
             ) : null}
 
-            <div className="grid gap-4">
-              {articleHtml ? (
-                <div
-                  className="[&_a]:font-semibold [&_a]:text-masterise-primary [&_blockquote]:border-l-4 [&_blockquote]:border-masterise-primary [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-extrabold [&_h2]:leading-[1.25] [&_h2]:tracking-normal [&_h2]:text-masterise-ink [&_h3]:mt-3 [&_h3]:text-xl [&_h3]:font-extrabold [&_h3]:leading-[1.25] [&_h3]:tracking-normal [&_h3]:text-masterise-ink [&_li]:ml-5 [&_li]:list-disc [&_p]:text-base [&_p]:leading-7 [&_p]:text-masterise-muted"
-                  dangerouslySetInnerHTML={{ __html: articleHtml }}
-                />
-              ) : (
-                article.content.map((block, index) => renderArticleBlock(block, index))
-              )}
-            </div>
+            <div className="grid gap-8 lg:col-start-1 lg:row-start-2">
+              <div className="grid gap-4">
+                {articleHtml ? (
+                  <div
+                    className="[&_a]:font-semibold [&_a]:text-masterise-primary [&_blockquote]:border-l-4 [&_blockquote]:border-masterise-primary [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:leading-[1.25] [&_h2]:tracking-normal [&_h2]:text-masterise-ink [&_h3]:mt-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:leading-[1.25] [&_h3]:tracking-normal [&_h3]:text-masterise-ink [&_li]:ml-5 [&_li]:list-disc [&_p]:text-base [&_p]:leading-7 [&_p]:text-masterise-muted"
+                    dangerouslySetInnerHTML={{ __html: articleHtml }}
+                  />
+                ) : (
+                  article.content.map((block, index) => renderArticleBlock(block, index))
+                )}
+              </div>
 
-            <div className="flex flex-wrap gap-2 border-t border-masterise-line pt-5">
-              {article.hashtags.map((tag) => (
-                <small className="tag" key={tag}>
-                  {tag}
-                </small>
-              ))}
+              <div className="flex flex-wrap gap-2 border-t border-masterise-line pt-5">
+                {article.hashtags.map((tag) => (
+                  <small className="tag" key={tag}>
+                    {tag}
+                  </small>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -186,7 +194,7 @@ function renderArticleBlock(block: string, index: number) {
     const title = block.slice(4);
     return (
       <h3
-        className="mt-3 scroll-mt-24 text-xl font-extrabold leading-[1.25] tracking-normal text-masterise-ink"
+        className="mt-3 scroll-mt-24 text-xl font-semibold leading-[1.25] tracking-normal text-masterise-ink"
         id={articleAnchor(title, index)}
         key={`${index}-${block}`}
       >
@@ -199,7 +207,7 @@ function renderArticleBlock(block: string, index: number) {
     const title = block.slice(3);
     return (
       <h2
-        className="mt-5 scroll-mt-24 text-2xl font-extrabold leading-[1.25] tracking-normal text-masterise-ink"
+        className="mt-5 scroll-mt-24 text-2xl font-semibold leading-[1.25] tracking-normal text-masterise-ink"
         id={articleAnchor(title, index)}
         key={`${index}-${block}`}
       >

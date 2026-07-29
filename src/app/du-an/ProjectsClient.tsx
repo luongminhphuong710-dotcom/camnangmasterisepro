@@ -76,7 +76,7 @@ export function ProjectsClient({ initialData = camnangData }: { initialData?: Si
   }, []);
 
   return (
-    <main className="detail-shell">
+    <main className="detail-shell projects-page">
       <SectionHeading
         centered
         eyebrow="Dự án"
@@ -84,7 +84,7 @@ export function ProjectsClient({ initialData = camnangData }: { initialData?: Si
         description="Lọc theo miền, tỉnh thành và phân khúc để xem danh sách dự án Masterise phù hợp."
       />
 
-      <div className="mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="catalog-filter-bar mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="filter-field rounded-lg border border-masterise-line">
           <Map size={19} aria-hidden className="text-masterise-primary" />
           <ThemeSelect
@@ -201,7 +201,7 @@ export function ProjectsClient({ initialData = camnangData }: { initialData?: Si
           {Array.from({ length: pageCount }, (_, index) => index + 1).map((item) => (
             <button
               key={item}
-              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold transition ${
+              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-semibold transition ${
                 item === currentPage
                   ? "border-masterise-primary bg-masterise-primary text-white"
                   : "border-masterise-primary bg-white text-masterise-primary hover:bg-masterise-soft"

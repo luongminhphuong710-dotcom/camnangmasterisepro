@@ -125,7 +125,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
 
   return (
     <>
-      <div className="mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2">
+      <div className="catalog-filter-bar mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2">
         <div className="filter-field rounded-lg border border-masterise-line">
           <Building2 size={19} aria-hidden className="text-masterise-primary" />
           <div className="store-project-select">
@@ -207,7 +207,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3 border-b border-masterise-line pb-3">
-              <div className="flex items-center gap-2 text-lg font-extrabold text-masterise-ink">
+              <div className="flex items-center gap-2 text-lg font-semibold text-masterise-ink">
                 <Building2 size={21} aria-hidden className="text-masterise-primary" />
                 Chọn dự án
               </div>
@@ -241,7 +241,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
                 filteredProjectOptions.map((option) => (
                 <button
                   key={option.value}
-                  className={`flex min-h-12 items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-bold transition ${
+                  className={`flex min-h-12 items-center gap-3 rounded-md px-4 py-3 text-left text-sm font-semibold transition ${
                     option.value === projectId
                       ? "bg-masterise-primary text-white"
                       : "text-masterise-ink hover:bg-masterise-soft hover:text-masterise-dark"
@@ -325,7 +325,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
           {Array.from({ length: pageCount }, (_, index) => index + 1).map((item) => (
             <button
               key={item}
-              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold transition ${
+              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-semibold transition ${
                 item === currentPage
                   ? "border-masterise-primary bg-masterise-primary text-white"
                   : "border-masterise-primary bg-white text-masterise-primary hover:bg-masterise-soft"

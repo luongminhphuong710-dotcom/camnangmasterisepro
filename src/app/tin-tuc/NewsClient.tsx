@@ -134,7 +134,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
 
   return (
     <>
-      <div className="mb-8 grid gap-4">
+      <div className="news-filter-panel mb-8 grid gap-4">
         <div
           className="filter-field search-suggest-field max-w-full rounded-lg border border-masterise-line sm:w-1/2 xl:w-1/4"
           ref={searchRef}
@@ -189,7 +189,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
           <div className="flex min-w-0 flex-1 flex-wrap items-start gap-4">
             <div className="relative min-w-[240px]">
               <button
-                className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
+                className="news-filter-control inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
                 type="button"
                 aria-label="Lọc bài viết theo dự án"
                 aria-expanded={isProjectOpen}
@@ -230,7 +230,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
 
             <div className="relative min-w-[220px]">
               <button
-                className="inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
+                className="news-filter-control inline-flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
                 type="button"
                 aria-label="Lọc bài viết theo chuyên mục"
                 aria-expanded={isCategoryOpen}
@@ -272,7 +272,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
 
           <div className="relative">
             <button
-              className="inline-flex min-h-11 min-w-40 items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
+              className="news-filter-control inline-flex min-h-11 min-w-40 items-center justify-between gap-3 rounded-lg border border-masterise-line bg-white px-4 text-sm font-semibold text-masterise-muted transition hover:border-masterise-primary hover:text-masterise-dark focus:border-masterise-primary focus:outline-none"
               type="button"
               aria-label="Sắp xếp bài viết"
               aria-expanded={isSortOpen}
@@ -349,7 +349,7 @@ export function NewsClient({ data, initialProjectId = "all" }: NewsClientProps) 
           {Array.from({ length: pageCount }, (_, index) => index + 1).map((item) => (
             <button
               key={item}
-              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-bold transition ${
+              className={`grid h-11 w-11 place-items-center rounded-full border text-sm font-semibold transition ${
                 item === currentPage
                   ? "border-masterise-primary bg-masterise-primary text-white"
                   : "border-masterise-primary bg-white text-masterise-primary hover:bg-masterise-soft"

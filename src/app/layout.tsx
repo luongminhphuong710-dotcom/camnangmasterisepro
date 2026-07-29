@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
-import { Be_Vietnam_Pro } from "next/font/google";
+import { Be_Vietnam_Pro, Playfair_Display } from "next/font/google";
 import type { ReactNode } from "react";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
-import { getSiteData } from "@/lib/runtime-data";
 import { siteUrl } from "@/lib/seo";
 import "./globals.css";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
-  weight: ["400", "500", "600", "700", "800"],
+  weight: ["400", "500", "600"],
   variable: "--font-be-vietnam-pro",
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin", "vietnamese"],
+  weight: ["400", "500", "600"],
+  variable: "--font-playfair-display",
   display: "swap",
 });
 
@@ -25,16 +31,12 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
-  const data = await getSiteData();
-  const headerLogo = data.homeSettings?.headerLogo || data.homeSettings?.logo || "";
-  const footerLogo = data.homeSettings?.footerLogo || data.homeSettings?.logo || "";
-
   return (
     <html lang="vi">
-      <body className={beVietnamPro.variable}>
-        <Header logo={headerLogo} />
+      <body className={`${beVietnamPro.variable} ${playfairDisplay.variable}`}>
+        <Header />
         {children}
-        <Footer logo={footerLogo} />
+        <Footer />
       </body>
     </html>
   );

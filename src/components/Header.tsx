@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useState } from "react";
 
 const navItems = [
@@ -11,7 +12,7 @@ const navItems = [
   { href: "/tin-tuc", label: "Tin Tức" },
 ];
 
-export function Header({ logo = "" }: { logo?: string }) {
+export function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
@@ -20,13 +21,8 @@ export function Header({ logo = "" }: { logo?: string }) {
 
   return (
     <header className="topbar">
-      <Link className="brand" href="/" aria-label="Cẩm Nang Masterise">
-        {logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logo} alt="Cẩm Nang Masterise" className="brand-logo-image" />
-        ) : (
-          <span className="brand-mark">CM</span>
-        )}
+      <Link className="brand" href="/" aria-label="camnangmasterise">
+        <BrandLogo className="brand-wordmark-header" />
       </Link>
 
       <button

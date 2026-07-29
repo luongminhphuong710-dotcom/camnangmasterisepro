@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { Building2, Clock3, Eye, MapPin, Phone, Star } from "lucide-react";
+import { Building2, Clock3, Eye, MapPin, Phone, Star, X } from "lucide-react";
+import { useState } from "react";
 import { fallbackImage as staticFallbackImage, storeCategories as staticStoreCategories } from "@/lib/data";
 import type { Project, Store, StoreCategory } from "@/lib/site-types";
 import { getCategoryFromList, shortText } from "@/lib/site-utils";
@@ -20,13 +23,15 @@ export function StoreCard({
   fallbackImage = staticFallbackImage,
   storeCategories = staticStoreCategories,
 }: StoreCardProps) {
+  const [isPhoneModalOpen, setIsPhoneModalOpen] = useState(false);
   const category = getCategoryFromList(storeCategories, store.category);
   const distanceLabel = typeof distance === "number" ? `${distance.toFixed(1)} km` : null;
   const reviewStats = getStoreReviewStats(store);
+  const phoneHref = `tel:${store.phone.replace(/\s/g, "")}`;
 
   return (
     <article className="store-card group relative flex h-full flex-col">
-      <Link className="absolute inset-0 z-10" href={`/gian-hang/${store.id}`} aria-label={`Xem chi tiết ${store.name}`} />
+      <Link className="absolute inset-0 z-10" href={`/gian-hang/${store.id}`} prefetch={true} aria-label={`Xem chi tiết ${store.name}`} />
       <figure>
         <Image
           src={store.image || project?.image || fallbackImage}
@@ -67,17 +72,62 @@ export function StoreCard({
             ) : null}
           </div>
           <div className="action-row relative z-20">
-            <Link className="primary-button" href={`/gian-hang/${store.id}`}>
+            <Link className="primary-button" href={`/gian-hang/${store.id}`} prefetch={true}>
               <Eye size={15} aria-hidden />
               Xem chi tiết
             </Link>
-            <a className="secondary-button" href={`tel:${store.phone.replace(/\s/g, "")}`}>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsPhoneModalOpen(true);
+              }}
+            >
               <Phone size={15} aria-hidden />
               Gọi điện
-            </a>
+            </button>
           </div>
         </div>
       </div>
+
+      {isPhoneModalOpen ? (
+        <div
+          className="fixed inset-0 z-[80] grid place-items-center bg-black/35 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={`store-phone-title-${store.id}`}
+          onClick={() => setIsPhoneModalOpen(false)}
+        >
+          <div className="w-full max-w-sm rounded-2xl border border-masterise-line bg-white p-6 text-center shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="mb-4 flex justify-end">
+              <button
+                className="grid h-9 w-9 place-items-center rounded-full text-masterise-muted transition hover:bg-masterise-soft hover:text-masterise-ink"
+                type="button"
+                onClick={() => setIsPhoneModalOpen(false)}
+                aria-label="Đóng popup"
+              >
+                <X size={18} aria-hidden />
+              </button>
+            </div>
+            <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-masterise-soft text-masterise-primary">
+              <Phone size={22} aria-hidden />
+            </span>
+            <p className="mt-4 text-sm text-masterise-muted">Số điện thoại gian hàng</p>
+            <h2 id={`store-phone-title-${store.id}`} className="mt-1 text-xl font-semibold text-masterise-ink">
+              {store.name}
+            </h2>
+            <a className="mt-4 block text-2xl font-semibold text-masterise-primary" href={phoneHref}>
+              {store.phone}
+            </a>
+            <a className="primary-button mt-6 w-full" href={phoneHref}>
+              <Phone size={17} aria-hidden />
+              Gọi ngay
+            </a>
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

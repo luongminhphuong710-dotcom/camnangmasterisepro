@@ -1,6 +1,6 @@
 import "server-only";
 
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { camnangData } from "@/lib/data";
 import type { SiteData } from "@/lib/site-types";
@@ -11,6 +11,7 @@ const LOCAL_DEMO_DATA_FILE = path.join(LOCAL_DEMO_DIR, "site-data.json");
 const LOCAL_DEMO_USERS_FILE = path.join(LOCAL_DEMO_DIR, "cms-users.json");
 const LEGACY_USERS_FILE = path.join(process.cwd(), ".cms-users.json");
 const LOCAL_UPLOAD_DIR = path.join(process.cwd(), "public", "local-demo-uploads");
+let localSiteDataCache: { modifiedAt: number; data: SiteData } | null = null;
 
 export type LocalDemoUser = {
   username: string;
@@ -31,10 +32,17 @@ export async function getLocalDemoSiteData(): Promise<SiteData> {
   }
 
   try {
-    return normalizeSiteData(repairTextTree(JSON.parse(readFileSync(LOCAL_DEMO_DATA_FILE, "utf8"))));
+    const modifiedAt = statSync(LOCAL_DEMO_DATA_FILE).mtimeMs;
+    if (localSiteDataCache?.modifiedAt === modifiedAt) return localSiteDataCache.data;
+
+    const data = normalizeSiteData(repairTextTree(JSON.parse(readFileSync(LOCAL_DEMO_DATA_FILE, "utf8"))));
+    localSiteDataCache = { modifiedAt, data };
+    return data;
   } catch {
     writeJson(LOCAL_DEMO_DATA_FILE, camnangData);
-    return normalizeSiteData(camnangData);
+    const data = normalizeSiteData(camnangData);
+    localSiteDataCache = { modifiedAt: statSync(LOCAL_DEMO_DATA_FILE).mtimeMs, data };
+    return data;
   }
 }
 
@@ -42,6 +50,7 @@ export async function saveLocalDemoSiteData(data: Partial<SiteData>) {
   ensureLocalDemoDir();
   const current = await getLocalDemoSiteData();
   writeJson(LOCAL_DEMO_DATA_FILE, normalizeSiteData({ ...current, ...data }));
+  localSiteDataCache = null;
 }
 
 export async function loadLocalDemoUsers(getBootstrapUsers: () => LocalDemoUser[]): Promise<LocalDemoUser[]> {

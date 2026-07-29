@@ -15,7 +15,7 @@ export default async function NewsPage() {
   const data = await getSiteData();
 
   return (
-    <main className="detail-shell">
+    <main className="detail-shell news-page">
       <SectionHeading
         centered
         eyebrow="Tin tức & Sự kiện"

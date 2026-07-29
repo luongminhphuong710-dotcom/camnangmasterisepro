@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
   try {
     const session = requireSession(request);
     if (action === "permissions") {
+      requireRole(session.role, ["super_admin", "admin"]);
       const users = publicUsers(await loadUsers());
       return json({ users, currentUser: session.sub, currentRole: session.role });
     }
@@ -100,15 +101,14 @@ export async function PUT(request: NextRequest) {
       return await handleUserMutation(request, session);
     }
 
-    requireRole(session.role, ["super_admin", "admin"]);
-
     const body = await request.json().catch(() => ({}));
     const data = body.data;
     if (!data || typeof data !== "object" || Array.isArray(data)) {
       throw statusError("Dữ liệu CMS không hợp lệ.", 400);
     }
 
-    await saveSiteData(data);
+    const dataToSave = session.role === "employee" ? { ...data, storeCategories: (await getSiteData()).storeCategories } : data;
+    await saveSiteData(dataToSave);
     revalidateSiteData();
     return json({ message: "Đã lưu dữ liệu." });
   } catch (error) {
@@ -361,7 +361,7 @@ async function handleUserMutation(request: NextRequest, session: SessionPayload)
 
 async function handleImageUpload(request: NextRequest) {
   const session = requireSession(request);
-  requireRole(session.role, ["super_admin", "admin"]);
+  requireRole(session.role, ["super_admin", "admin", "employee"]);
 
   const formData = await request.formData();
   const file = formData.get("file");

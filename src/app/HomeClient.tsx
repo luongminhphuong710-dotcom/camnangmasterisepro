@@ -9,7 +9,6 @@ import { NewsCard } from "@/components/NewsCard";
 import { ProjectPreviewGrid } from "@/components/ProjectCard";
 import { SectionHeading } from "@/components/SectionHeading";
 import { StoreCard } from "@/components/StoreCard";
-import { ThemeSelect } from "@/components/ThemeSelect";
 import { camnangData } from "@/lib/data";
 import type { SiteData, Store as StoreItem } from "@/lib/site-types";
 import { getCategoryFromList, getProjectFromData, normalize } from "@/lib/site-utils";
@@ -27,22 +26,16 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
   const [data] = useState<SiteData>(() => initialData);
   const { fallbackImage, newsItems, projects, storeCategories, stores } = data;
   const headBannerImage = data.homeSettings?.headBannerImage || camnangData.homeSettings.headBannerImage;
-  const [projectId, setProjectId] = useState("all");
   const [query, setQuery] = useState("");
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  const projectOptions = useMemo(
-    () => [{ value: "all", label: "Chọn dự án bạn đang ở" }, ...projects.map((project) => ({ value: project.id, label: project.name }))],
-    [projects],
-  );
 
   const suggestions = useMemo<SearchSuggestion[]>(() => {
     const text = normalize(query);
     if (!text) return [];
 
     const projectSuggestions = projects
-      .filter((project) => normalize([project.name, project.location, project.city].join(" ")).includes(text))
+      .filter((project) => normalize(project.name).includes(text))
       .map((project) => ({
         id: `project-${project.id}`,
         label: project.name,
@@ -52,11 +45,7 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
       }));
 
     const storeSuggestions = stores
-      .filter((store) => {
-        const project = getProjectFromData(data, store.projectId);
-        const category = getCategoryFromList(storeCategories, store.category);
-        return normalize([store.name, store.note, category.label, project?.name, project?.city].join(" ")).includes(text);
-      })
+      .filter((store) => normalize(store.name).includes(text))
       .map((store) => {
         const project = getProjectFromData(data, store.projectId);
         const category = getCategoryFromList(storeCategories, store.category);
@@ -71,22 +60,12 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
 
     return [...storeSuggestions, ...projectSuggestions].slice(0, 7);
   }, [data, query, storeCategories, stores, projects]);
-
   const filteredStores = useMemo(() => {
-    const tokens = normalize(query).split(/\s+/).filter(Boolean);
     return stores
-      .filter((store) => {
-        const project = getProjectFromData(data, store.projectId);
-        if (!project) return false;
-        const matchesProject = projectId === "all" || project.id === projectId;
-        const category = getCategoryFromList(storeCategories, store.category);
-        const searchText = normalize([store.name, store.note, category.label, project.name, project.location, project.city].join(" "));
-        const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));
-        return matchesProject && matchesQuery;
-      })
+      .filter((store) => Boolean(getProjectFromData(data, store.projectId)))
       .sort((a, b) => storeRating(b) - storeRating(a))
       .slice(0, 8);
-  }, [data, projectId, query, storeCategories, stores]);
+  }, [data, stores]);
 
   useEffect(() => {
     function closeSuggestions(event: MouseEvent) {
@@ -98,11 +77,6 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
     document.addEventListener("click", closeSuggestions);
     return () => document.removeEventListener("click", closeSuggestions);
   }, []);
-
-  function runSearch() {
-    setIsSuggestionOpen(false);
-    document.querySelector("#hotServices")?.scrollIntoView({ behavior: "smooth" });
-  }
 
   function chooseSuggestion(suggestion: SearchSuggestion) {
     setQuery(suggestion.label);
@@ -121,14 +95,17 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
           fetchPriority="high"
           sizes="100vw"
         />
-      </section>
+        <div className="hero-wash" aria-hidden />
+        <div className="hero-content">
+          <p className="hero-kicker">Cẩm nang cư dân Masterise</p>
+          <h1>Nhịp sống an yên, mọi tiện ích trong tầm tay</h1>
+          <p>Khám phá dự án, gian hàng và những thông tin thiết thực để tận hưởng trọn vẹn không gian sống của bạn.</p>
 
-      <section aria-labelledby="quickFilterTitle">
-        <div className="filter-card" role="search">
-          <div className="filter-field">
-            <Building2 size={19} aria-hidden className="text-masterise-primary" />
-            <ThemeSelect label="Dự án bạn đang ở" value={projectId} options={projectOptions} onChange={setProjectId} />
-          </div>
+        
+
+
+        <div className="hero-search">
+          <div className="filter-card" role="search">
           <div className="filter-field search-suggest-field" ref={searchRef}>
             <Search size={19} aria-hidden className="text-masterise-primary" />
             <input
@@ -148,12 +125,6 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
                 setIsSuggestionOpen(true);
               }}
               onFocus={() => setIsSuggestionOpen(true)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  runSearch();
-                }
-              }}
             />
             {isSuggestionOpen && suggestions.length > 0 ? (
               <div className="search-suggestion-menu" id="homeSearchSuggestions" role="listbox">
@@ -178,26 +149,24 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
               </div>
             ) : null}
           </div>
-          <button className="filter-button" type="button" onClick={runSearch}>
-            <Search size={18} aria-hidden />
-            Tìm kiếm
-          </button>
+        </div>
         </div>
 
-        <div className="section pt-9" id="hotServices">
+        </div>
+
+
+
+      </section>
+
+      <section>
+        <div className="section home-section pt-9" id="hotServices">
           <SectionHeading
             eyebrow="Đề xuất theo dự án"
-            title={projectId !== "all" ? "Top dịch vụ phù hợp" : "Top gian hàng được đề xuất"}
-            description="Chọn dự án bạn đang ở để xem gian hàng phù hợp. Ô tìm kiếm phía trên dùng để mở nhanh dự án hoặc gian hàng cụ thể."
-            action={
-              <Link className="secondary-button" href="/gian-hang">
-                Xem thêm
-                <ArrowRight size={16} aria-hidden />
-              </Link>
-            }
+            title="Top gian hàng được đề xuất"
+            description="Khám phá các gian hàng được cư dân Masterise yêu thích."
           />
           {filteredStores.length ? (
-            <div className="store-grid">
+            <div className="store-grid home-store-grid">
               {filteredStores.map((store) => (
                 <StoreCard
                   key={store.id}
@@ -213,38 +182,44 @@ export default function HomePage({ initialData = camnangData }: { initialData?: 
               Chưa có nội dung phù hợp với bộ lọc này.
             </div>
           )}
+          <div className="section-end-action">
+            <Link className="secondary-button" href="/gian-hang">
+              Xem thêm
+              <ArrowRight size={16} aria-hidden />
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="section" id="projects">
+      <section className="section home-section" id="projects">
         <SectionHeading
           title="Khám phá nơi mình sống"
           description="Chọn dự án để xem thông tin, gian hàng và các tiện ích phù hợp với khu vực của bạn."
-          action={
-            <Link className="secondary-button" href="/du-an">
-              Xem thêm
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-          }
         />
         <ProjectPreviewGrid projects={projects} regionMeta={data.regionMeta} stores={stores} />
+        <div className="section-end-action">
+          <Link className="secondary-button" href="/du-an">
+            Xem thêm
+            <ArrowRight size={16} aria-hidden />
+          </Link>
+        </div>
       </section>
 
-      <section className="section">
+      <section className="section home-section">
         <SectionHeading
           title="Thông tin cần biết"
           description="Cung cấp những thông tin mới và nhanh nhất tại các khu đô thị Masterise Homes"
-          action={
-            <Link className="secondary-button" href="/tin-tuc">
-              Xem thêm
-              <ArrowRight size={16} aria-hidden />
-            </Link>
-          }
         />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 home-news-grid">
           {newsItems.slice(0, 8).map((item) => (
             <NewsCard key={item.id} item={item} projects={projects} regionMeta={data.regionMeta} />
           ))}
+        </div>
+        <div className="section-end-action">
+          <Link className="secondary-button" href="/tin-tuc">
+            Xem thêm
+            <ArrowRight size={16} aria-hidden />
+          </Link>
         </div>
       </section>
     </main>

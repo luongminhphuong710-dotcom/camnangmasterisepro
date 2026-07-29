@@ -21,6 +21,7 @@ export function ProjectCard({ project, regionMeta = staticRegionMeta, stores = s
       <Link
         className="absolute inset-0 z-10 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-masterise-primary focus-visible:ring-offset-2"
         href={`/du-an/${project.id}`}
+        prefetch={true}
         aria-label={`Xem thông tin chi tiết ${project.name}`}
       />
       <figure>
@@ -31,19 +32,19 @@ export function ProjectCard({ project, regionMeta = staticRegionMeta, stores = s
           <span className="eyebrow mb-1 block">
             {displayRegion} / {project.city}
           </span>
-          <h3 className="h3">{project.name}</h3>
+          <h3 className="project-card-title">{project.name}</h3>
+          <div className="mt-2 flex flex-wrap justify-center gap-2">
+            <span className="tag">{project.segment}</span>
+            <span className="tag">{projectStores.length} gian hàng</span>
+          </div>
         </div>
-        <p className="body-text text-sm">{project.summary}</p>
-        <div className="flex flex-wrap justify-center gap-2">
-          <span className="tag">{project.segment}</span>
-          <span className="tag">{projectStores.length} gian hàng</span>
-        </div>
+        <p className="body-text text-sm">{keepLastWordsTogether(project.summary)}</p>
         <div className="action-row mt-auto">
-          <Link className="primary-button relative z-20" href={`/du-an/${project.id}`}>
+          <Link className="primary-button relative z-20" href={`/du-an/${project.id}`} prefetch={true}>
             <Info size={18} aria-hidden />
             Thông tin
           </Link>
-          <Link className="secondary-button relative z-20" href={`/gian-hang?project=${project.id}`}>
+          <Link className="secondary-button relative z-20" href={`/gian-hang?project=${project.id}`} prefetch={true}>
             <Store size={18} aria-hidden />
             Gian hàng
           </Link>
@@ -69,4 +70,7 @@ export function ProjectPreviewGrid({
       ))}
     </div>
   );
+}
+function keepLastWordsTogether(value: string) {
+  return value.replace(/(\S+)\s+(\S+)$/, "$1\u00a0$2");
 }

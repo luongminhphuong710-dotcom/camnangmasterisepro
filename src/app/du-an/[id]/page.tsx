@@ -12,10 +12,11 @@ type ProjectPageProps = {
   params: Promise<{ id: string }>;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-export function generateStaticParams() {
-  return [];
+export async function generateStaticParams() {
+  const data = await getSiteData();
+  return data.projects.map(({ id }) => ({ id }));
 }
 
 export async function generateMetadata({ params }: ProjectPageProps): Promise<Metadata> {
@@ -37,7 +38,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
   if (!project) {
     return (
-      <main className="detail-shell">
+      <main className="detail-shell project-detail-page">
         <div className="rounded-lg border border-masterise-line bg-white p-8">Không tìm thấy dự án.</div>
       </main>
     );
@@ -71,7 +72,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   };
 
   return (
-    <main className="detail-shell">
+    <main className="detail-shell project-detail-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(projectJsonLd) }} />
       <section className="detail-hero">
         <figure>
@@ -90,7 +91,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
 
       <section className="py-10">
         <div className="section-heading">
-          <h2 className="text-2xl font-extrabold leading-[1.22] tracking-normal">Thông tin chi tiết</h2>
+          <h2 className="text-2xl font-semibold leading-[1.22] tracking-normal">Thông tin chi tiết</h2>
         </div>
 
         <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.8fr)]">
@@ -98,12 +99,12 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             <article className="rounded-lg border border-masterise-line bg-white p-4 md:p-5">
               <div className="mb-3 flex items-center gap-2 text-masterise-primary">
                 <Info size={19} aria-hidden />
-                <h3 className="text-lg font-extrabold text-masterise-ink">Tổng quan về dự án</h3>
+                <h3 className="text-lg font-semibold text-masterise-ink">Tổng quan về dự án</h3>
               </div>
               <dl className="divide-y divide-masterise-line text-sm">
                 {overviewItems.map((item) => (
                   <div key={item.label} className="grid gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[160px_minmax(0,1fr)]">
-                    <dt className="font-extrabold text-masterise-ink">{item.label}</dt>
+                    <dt className="font-semibold text-masterise-ink">{item.label}</dt>
                     <dd className="font-semibold leading-6 text-masterise-muted">{item.value}</dd>
                   </div>
                 ))}
@@ -114,7 +115,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
               <article className="rounded-lg border border-masterise-line bg-white p-4 md:p-5">
                 <div className="mb-3 flex items-center gap-2 text-masterise-primary">
                   <Sparkles size={19} aria-hidden />
-                  <h3 className="text-lg font-extrabold text-masterise-ink">Dịch vụ tiện ích nổi bật</h3>
+                  <h3 className="text-lg font-semibold text-masterise-ink">Dịch vụ tiện ích nổi bật</h3>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {project.highlights.map((item) => (
@@ -131,20 +132,20 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
             <div className="border-b border-masterise-line p-5">
               <div className="flex items-center gap-2 text-masterise-primary">
                 <MapPin size={19} aria-hidden />
-                <h3 className="text-lg font-extrabold text-masterise-ink">Vị trí</h3>
+                <h3 className="text-lg font-semibold text-masterise-ink">Vị trí</h3>
               </div>
               <div className="mt-4 grid gap-3 text-sm text-masterise-muted">
                 <div>
-                  <p className="mb-1 font-bold text-masterise-ink">Địa chỉ</p>
+                  <p className="mb-1 font-semibold text-masterise-ink">Địa chỉ</p>
                   <p>{projectAddress}</p>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
-                    <p className="mb-1 font-bold text-masterise-ink">Khu vực</p>
+                    <p className="mb-1 font-semibold text-masterise-ink">Khu vực</p>
                     <p>{regionLabel}</p>
                   </div>
                   <div>
-                    <p className="mb-1 font-bold text-masterise-ink">Tỉnh / thành phố</p>
+                    <p className="mb-1 font-semibold text-masterise-ink">Tỉnh / thành phố</p>
                     <p>{project.city}</p>
                   </div>
                 </div>
@@ -165,7 +166,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
         <section className="py-10">
           <div className="section-heading with-action">
             <div>
-              <h2 className="text-2xl font-extrabold leading-[1.22] tracking-normal">Gian hàng trong dự án</h2>
+              <h2 className="text-2xl font-semibold leading-[1.22] tracking-normal">Gian hàng trong dự án</h2>
               <p className="mt-2 text-sm font-semibold text-masterise-muted">Tổng số {projectStores.length} gian hàng</p>
             </div>
             <Link className="secondary-button" href={`/gian-hang?project=${encodeURIComponent(project.id)}`}>
@@ -190,7 +191,7 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
       {relatedNews.length ? (
         <section className="py-10">
           <div className="section-heading with-action">
-            <h2 className="text-2xl font-extrabold leading-[1.22] tracking-normal">Tin liên quan</h2>
+            <h2 className="text-2xl font-semibold leading-[1.22] tracking-normal">Tin liên quan</h2>
             <Link className="secondary-button" href={`/tin-tuc?project=${encodeURIComponent(project.id)}`}>
               Xem thêm
               <ArrowRight size={17} aria-hidden />

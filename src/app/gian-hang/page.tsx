@@ -15,7 +15,7 @@ export default async function StoresPage() {
   const data = await getSiteData();
 
   return (
-    <main className="detail-shell">
+    <main className="detail-shell stores-page">
       <SectionHeading
         centered
         eyebrow="Gian hàng"

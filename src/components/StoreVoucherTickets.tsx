@@ -82,11 +82,11 @@ export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: Stor
             >
               <span className="flex items-start justify-between gap-3">
                 <span className="grid gap-1">
-                  <span className="flex items-center gap-2 text-sm font-bold uppercase text-masterise-primary">
+                  <span className="flex items-center gap-2 text-sm font-semibold uppercase text-masterise-primary">
                     <TicketPercent size={17} aria-hidden />
                     Voucher
                   </span>
-                  <strong className="text-base font-bold leading-snug text-masterise-ink">{voucher.description}</strong>
+                  <strong className="text-base font-semibold leading-snug text-masterise-ink">{voucher.description}</strong>
                 </span>
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-masterise-primary">
                   {isClaimed ? <Check size={18} aria-hidden /> : <Copy size={17} aria-hidden />}
@@ -94,7 +94,7 @@ export function StoreVoucherTickets({ storeName, vouchers: storeVouchers }: Stor
               </span>
 
               <span className="mt-4 flex items-center justify-end gap-3 border-t border-dashed border-masterise-line pt-3">
-                <span className="rounded-md bg-white px-2.5 py-1 text-xs font-extrabold tracking-[0.08em] text-masterise-primary">
+                <span className="rounded-md bg-white px-2.5 py-1 text-xs font-semibold tracking-[0.08em] text-masterise-primary">
                   {isClaimed ? voucher.code : "LẤY MÃ"}
                 </span>
               </span>

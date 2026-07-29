@@ -43,10 +43,11 @@ type CmsStoreVoucher = {
   redeemCount?: number;
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
-export function generateStaticParams() {
-  return [];
+export async function generateStaticParams() {
+  const data = await getSiteData();
+  return data.stores.map(({ id }) => ({ id }));
 }
 
 export async function generateMetadata({ params }: StorePageProps): Promise<Metadata> {
@@ -69,7 +70,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
   if (!store) {
     return (
-      <main className="detail-shell">
+      <main className="detail-shell store-detail-page">
         <div className="rounded-lg border border-masterise-line bg-white p-8">Không tìm thấy gian hàng.</div>
       </main>
     );
@@ -170,7 +171,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   };
 
   return (
-    <main className="detail-shell">
+    <main className="detail-shell store-detail-page">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(storeJsonLd) }} />
       <section className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(320px,3fr)]">
         <div className="grid gap-6">
@@ -178,7 +179,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             <span className="tag mb-2">
               {category.label}
             </span>
-            <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
+            <h1 className="text-2xl font-semibold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
             <p className="body-text mt-3 text-sm">{shortDescription}</p>
 
             <div className="mt-5 grid gap-3 text-sm text-masterise-muted">
@@ -216,7 +217,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
           </section>
 
           <div className="order-1 lg:order-none">
-            <nav aria-label="Breadcrumb gian hàng" className="mb-3 flex min-w-0 items-center gap-2 text-xs font-extrabold uppercase text-masterise-primary">
+            <nav aria-label="Breadcrumb gian hàng" className="mb-3 flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-masterise-primary">
               <Link className="shrink-0 transition hover:text-masterise-dark" href="/gian-hang">
                 Gian hàng
               </Link>
@@ -246,7 +247,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               return (
               <a
                 key={item.href}
-                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-xs font-bold text-masterise-muted transition hover:bg-masterise-soft hover:text-masterise-dark sm:text-sm md:gap-2 md:px-4"
+                className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-2 text-xs font-semibold text-masterise-muted transition hover:bg-masterise-soft hover:text-masterise-dark sm:text-sm md:gap-2 md:px-4"
                 href={item.href}
               >
                 <Icon size={15} aria-hidden className="shrink-0" />
@@ -280,14 +281,14 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
                 <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
                   <Phone className="mt-0.5 shrink-0 text-masterise-primary" size={18} aria-hidden />
                   <span>
-                    <span className="mb-1.5 block text-xs font-bold uppercase text-masterise-primary">Số điện thoại</span>
+                    <span className="mb-1.5 block text-xs font-semibold uppercase text-masterise-primary">Số điện thoại</span>
                     {store.phone}
                   </span>
                 </p>
                 <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
                   <MapPin className="mt-0.5 shrink-0 text-masterise-primary" size={18} aria-hidden />
                   <span className="leading-[1.45]">
-                    <span className="mb-1.5 block text-xs font-bold uppercase text-masterise-primary">Địa chỉ</span>
+                    <span className="mb-1.5 block text-xs font-semibold uppercase text-masterise-primary">Địa chỉ</span>
                     {address}
                   </span>
                 </p>
@@ -323,7 +324,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             <span className="tag mb-2">
               {category.label}
             </span>
-            <h1 className="text-2xl font-extrabold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
+            <h1 className="text-2xl font-semibold leading-[1.22] tracking-normal text-masterise-ink">{store.name}</h1>
             <p className="body-text mt-3 text-sm">{shortDescription}</p>
 
             <div className="mt-5 grid gap-3 text-sm text-masterise-muted">
@@ -364,7 +365,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
       {relatedStores.length ? (
         <section className="mt-12 border-t border-masterise-line pt-8">
-          <div className="mb-6 flex items-center gap-2 text-xl font-extrabold uppercase tracking-normal text-masterise-primary">
+          <div className="mb-6 flex items-center gap-2 text-xl font-semibold uppercase tracking-normal text-masterise-primary">
             <Building2 size={22} aria-hidden className="shrink-0" />
             Gian hàng cùng khu vực
           </div>
@@ -434,7 +435,7 @@ function ContentBlock({
 
   return (
     <section id={id} className="scroll-mt-[168px] rounded-lg border border-masterise-line bg-white p-5 md:p-6">
-      <p className="mb-4 flex items-center gap-2 text-lg font-extrabold uppercase tracking-normal text-masterise-primary md:text-xl">
+      <p className="mb-4 flex items-center gap-2 text-lg font-semibold uppercase tracking-normal text-masterise-primary md:text-xl">
         <Icon size={22} aria-hidden className="shrink-0" />
         {eyebrow}
       </p>

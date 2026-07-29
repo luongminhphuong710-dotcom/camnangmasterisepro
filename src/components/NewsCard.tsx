@@ -18,7 +18,7 @@ export function NewsCard({ item, projects = staticProjects, regionMeta = staticR
   const createdDate = formatCreatedDate(item.createdAt, item.date);
 
   return (
-    <Link className="news-card flex h-full flex-col" href={`/tin-tuc/${item.id}`}>
+    <Link className="news-card flex h-full flex-col" href={`/tin-tuc/${item.id}`} prefetch={true}>
       <figure>
         <Image src={item.image} alt={item.title} fill sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw" />
       </figure>
