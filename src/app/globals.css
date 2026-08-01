@@ -1754,3 +1754,64 @@ a {
   display: block;
   margin: 1.25rem 0;
 }
+/* Article reading rhythm on the public site. */
+.article-detail-page .article-content {
+  color: #746657;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.article-detail-page .article-content p {
+  margin: 0;
+  line-height: 1.8;
+}
+.article-detail-page .article-content p + p {
+  margin-top: 1rem;
+}
+.article-detail-page .article-content h2 {
+  margin: 3rem 0 1rem;
+  color: #2d241d;
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.article-detail-page .article-content h3 {
+  margin: 2.25rem 0 .8rem;
+  color: #2d241d;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.32;
+}
+.article-detail-page .article-content h2 + p,
+.article-detail-page .article-content h3 + p {
+  margin-top: 0;
+}
+.article-detail-page .article-content img {
+  display: block;
+  width: 100%;
+  margin: 2rem 0;
+  border-radius: 1rem;
+}
+.article-detail-page .article-content ol,
+.article-detail-page .article-content ul {
+  margin: 1.15rem 0;
+  padding-left: 1.4rem;
+}
+.article-detail-page .article-content li {
+  padding-left: .2rem;
+  line-height: 1.75;
+}
+.article-detail-page .article-content li + li {
+  margin-top: .4rem;
+}
+.article-detail-page .article-content blockquote {
+  margin: 1.75rem 0;
+  padding: 1rem 1.25rem;
+  line-height: 1.7;
+}
+@media (max-width: 767px) {
+  .article-detail-page .article-content { line-height: 1.75; }
+  .article-detail-page .article-content p { line-height: 1.75; }
+  .article-detail-page .article-content h2 { margin-top: 2.5rem; font-size: 1.5rem; }
+  .article-detail-page .article-content h3 { margin-top: 1.85rem; font-size: 1.25rem; }
+  .article-detail-page .article-content img { margin: 1.5rem 0; border-radius: .85rem; }
+}

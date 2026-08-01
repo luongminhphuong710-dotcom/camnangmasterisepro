@@ -143,7 +143,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               <div className="grid gap-4">
                 {articleHtml ? (
                   <div
-                    className="[&_a]:font-semibold [&_a]:text-masterise-primary [&_blockquote]:border-l-4 [&_blockquote]:border-masterise-primary [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:leading-[1.25] [&_h2]:tracking-normal [&_h2]:text-masterise-ink [&_h3]:mt-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:leading-[1.25] [&_h3]:tracking-normal [&_h3]:text-masterise-ink [&_li]:ml-5 [&_li]:list-disc [&_p]:text-base [&_p]:leading-7 [&_p]:text-masterise-muted"
+                    className="article-content [&_a]:font-semibold [&_a]:text-masterise-primary [&_blockquote]:border-l-4 [&_blockquote]:border-masterise-primary [&_blockquote]:pl-4 [&_h2]:mt-5 [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:leading-[1.25] [&_h2]:tracking-normal [&_h2]:text-masterise-ink [&_h3]:mt-3 [&_h3]:text-xl [&_h3]:font-semibold [&_h3]:leading-[1.25] [&_h3]:tracking-normal [&_h3]:text-masterise-ink [&_li]:ml-5 [&_li]:list-disc [&_p]:text-base [&_p]:leading-7 [&_p]:text-masterise-muted"
                     dangerouslySetInnerHTML={{ __html: articleHtml }}
                   />
                 ) : (
