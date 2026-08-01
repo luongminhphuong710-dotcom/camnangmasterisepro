@@ -3061,7 +3061,7 @@ function RichTextEditor({
   }, [isFocused, value]);
 
   return (
-    <div className="quill-editor-shell rounded-lg border border-masterise-line bg-white">
+    <div className="quill-editor-shell w-full rounded-lg border border-masterise-line bg-white lg:w-1/2">
       {!isReady ? (
         <div className="grid min-h-[240px] place-items-center text-sm font-semibold text-masterise-muted">Đang tải editor...</div>
       ) : null}

@@ -130,7 +130,7 @@ a {
   }
 
   .quill-editor-shell .ql-editor {
-    @apply max-h-[520px] min-h-[240px] overflow-y-auto overscroll-contain text-sm leading-[1.7] text-masterise-ink md:text-base;
+    @apply max-h-[1040px] min-h-[480px] overflow-y-auto overscroll-contain text-sm leading-[1.7] text-masterise-ink md:text-base;
   }
 
   .quill-editor-shell .ql-editor.ql-blank::before {
