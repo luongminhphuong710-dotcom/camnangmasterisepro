@@ -186,6 +186,7 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
   const [projectCityFilter, setProjectCityFilter] = useState("");
   const [projectSegmentFilter, setProjectSegmentFilter] = useState("");
   const [session, setSession] = useState<Session | null>(null);
+  const [isSessionHydrated, setIsSessionHydrated] = useState(false);
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("");
   const [isDirty, setIsDirty] = useState(false);
@@ -278,7 +279,10 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
 
     async function hydrateSession() {
       const stored = localStorage.getItem(SESSION_KEY);
-      if (!stored || cancelled) return;
+      if (!stored || cancelled) {
+        if (!cancelled) setIsSessionHydrated(true);
+        return;
+      }
 
       try {
         const nextSession = JSON.parse(stored) as Session;
@@ -295,6 +299,8 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
           localStorage.removeItem(SESSION_KEY);
           setStatus({ type: "success", message: "Đang dùng dữ liệu local để xem thử." });
         }
+      } finally {
+        if (!cancelled) setIsSessionHydrated(true);
       }
     }
 
@@ -501,6 +507,19 @@ export function AdminClient({ initialSection = "stores", initialMode = "list", i
     setIsDirty(true);
   }
 
+  if (!isSessionHydrated) {
+    return (
+      <main className="cms-login min-h-screen bg-masterise-surface">
+        <section className="page-shell flex min-h-screen items-center justify-center py-8">
+          <div className="grid w-full max-w-sm justify-items-center gap-4 rounded-lg border border-masterise-line bg-white p-8 text-center shadow-masterise">
+            <BrandLogo className="brand-wordmark-admin" />
+            <Loader2 className="animate-spin text-masterise-primary" size={28} aria-hidden />
+            <p className="text-sm font-semibold text-masterise-muted">Đang tải CMS...</p>
+          </div>
+        </section>
+      </main>
+    );
+  }
   if (!session) {
     return (
       <main className="cms-login min-h-screen bg-masterise-surface">
