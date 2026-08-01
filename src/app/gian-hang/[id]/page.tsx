@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { StoreCard } from "@/components/StoreCard";
+import { StorePhoneContact } from "@/components/StorePhoneContact";
 import { StoreReviewBox } from "@/components/StoreReviewBox";
 import { StoreHeroGallery } from "@/components/StoreHeroGallery";
 import { StoreVoucherTickets } from "@/components/StoreVoucherTickets";
@@ -104,7 +105,6 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
   const mapEmbedSrc = googleMapsEmbedSrc(cmsStore.mapEmbedUrl) || `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed`;
   const detailContent = sanitizeRichTextHtml(cmsStore.detailContent || "");
   const shortDescription = shortText(store.note, 220);
-  const cleanPhone = store.phone.replace(/\s/g, "");
   const demoReviews = [
     {
       name: "EmpatheticCarrot1687",
@@ -200,10 +200,8 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <a className="primary-button" href={`tel:${cleanPhone}`}>
-                <Phone size={17} aria-hidden />
-                Gọi điện
-              </a>
+              <StorePhoneContact storeName={store.name} phone={store.phone} />
+
               <a
                 className="secondary-button"
                 href={mapSearchUrl}
@@ -345,10 +343,8 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
             </div>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
-              <a className="primary-button" href={`tel:${cleanPhone}`}>
-                <Phone size={17} aria-hidden />
-                Gọi điện
-              </a>
+              <StorePhoneContact storeName={store.name} phone={store.phone} />
+
               <a
                 className="secondary-button"
                 href={mapSearchUrl}
