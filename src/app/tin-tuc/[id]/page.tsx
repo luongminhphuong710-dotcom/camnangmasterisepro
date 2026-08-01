@@ -92,17 +92,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <div className="page-shell">
           <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-start lg:gap-x-12 lg:gap-y-8">
             <article className="grid gap-8 lg:col-start-1">
-            <figure className="relative aspect-video overflow-hidden rounded-lg bg-masterise-soft">
-              <Image
-                src={article.image}
-                alt={article.title}
-                fill
-                priority
-                fetchPriority="high"
-                sizes="(min-width: 768px) 45vw, 100vw"
-                className="object-cover"
-              />
-            </figure>
               <div className="grid max-w-4xl gap-5 text-left">
               <nav aria-label="Breadcrumb bài viết" className="flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-masterise-primary">
                 <Link className="shrink-0 transition hover:text-masterise-dark" href="/tin-tuc">
@@ -115,12 +104,23 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                   {article.title}
                 </span>
               </nav>
-              <h1 className="text-[2rem] font-semibold leading-[1.16] tracking-normal text-masterise-ink md:text-[42px]">{article.title}</h1>
+              <h1 className="text-[32px] font-semibold leading-[1.16] tracking-normal text-masterise-ink">{article.title}</h1>
               <p className="body-text">{article.excerpt}</p>
               <time className="text-sm font-semibold text-masterise-primary" dateTime={toIsoDate(article.date)}>
                 {article.date}
               </time>
             </div>
+            <figure className="relative aspect-video overflow-hidden rounded-lg bg-masterise-soft">
+              <Image
+                src={article.image}
+                alt={article.title}
+                fill
+                priority
+                fetchPriority="high"
+                sizes="(min-width: 768px) 45vw, 100vw"
+                className="object-cover"
+              />
+            </figure>
             </article>
             {tableOfContents.length ? (
               <aside className="lg:col-start-2 lg:row-start-1 lg:sticky lg:top-24" aria-label="Điều hướng bài viết">

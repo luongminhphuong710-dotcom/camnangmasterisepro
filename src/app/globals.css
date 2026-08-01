@@ -1706,3 +1706,51 @@ a {
 .store-phone-modal-number button.store-phone-modal-copy svg { display: block !important; color: currentColor; stroke: currentColor; }
 .store-phone-modal-number button.store-phone-modal-copy:hover { background: #805b30 !important; }
 .article-detail-page h2[id], .article-detail-page h3[id] { scroll-margin-top: 6rem; }
+/* CMS editor typography: make pasted rich content as readable as the public article. */
+.quill-editor-shell .ql-editor {
+  line-height: 1.75;
+}
+.quill-editor-shell .ql-editor > * + * {
+  margin-top: .85rem;
+}
+.quill-editor-shell .ql-editor p {
+  margin: 0;
+  line-height: 1.75;
+}
+.quill-editor-shell .ql-editor h2 {
+  margin: 1.75rem 0 .7rem;
+  color: #2d241d;
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.28;
+}
+.quill-editor-shell .ql-editor h3 {
+  margin: 1.35rem 0 .55rem;
+  color: #2d241d;
+  font-size: 1.2rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.quill-editor-shell .ql-editor ol,
+.quill-editor-shell .ql-editor ul {
+  margin: .85rem 0;
+  padding-left: 1.65rem;
+}
+.quill-editor-shell .ql-editor li {
+  min-height: 1.75em;
+  line-height: 1.75;
+}
+.quill-editor-shell .ql-editor li + li {
+  margin-top: .35rem;
+}
+.quill-editor-shell .ql-editor blockquote {
+  margin: 1rem 0;
+  padding: .75rem 1rem;
+  border-left: 3px solid #a47c48;
+  background: #fbf5ec;
+  color: #554536;
+}
+.quill-editor-shell .ql-editor img {
+  display: block;
+  margin: 1.25rem 0;
+}
