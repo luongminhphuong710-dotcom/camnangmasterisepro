@@ -1705,3 +1705,4 @@ a {
 }
 .store-phone-modal-number button.store-phone-modal-copy svg { display: block !important; color: currentColor; stroke: currentColor; }
 .store-phone-modal-number button.store-phone-modal-copy:hover { background: #805b30 !important; }
+.article-detail-page h2[id], .article-detail-page h3[id] { scroll-margin-top: 6rem; }

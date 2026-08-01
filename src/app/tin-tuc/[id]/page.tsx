@@ -57,10 +57,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   );
   const fallbackArticles = sortNewsByNewest(data.newsItems.filter((item) => item.id !== article.id));
   const related = (sameProjectArticles.length ? sameProjectArticles : fallbackArticles).slice(0, 3);
-  const articleHtml = sanitizeArticleHtml(article.contentHtml || "");
-  const tableOfContents = article.content
-    .map((block, index) => getHeadingItem(block, index))
-    .filter((item): item is HeadingItem => Boolean(item));
+  const rawArticleHtml = sanitizeArticleHtml(article.contentHtml || "");
+  const articleHtml = rawArticleHtml ? addArticleHeadingAnchors(rawArticleHtml) : "";
+  const tableOfContents = articleHtml
+    ? getHeadingItemsFromHtml(articleHtml)
+    : article.content
+        .map((block, index) => getHeadingItem(block, index))
+        .filter((item): item is HeadingItem => Boolean(item));
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -237,6 +240,46 @@ function parseNewsDate(date: string) {
   return new Date(year, month - 1, day).getTime();
 }
 
+function getHeadingItemsFromHtml(value: string): HeadingItem[] {
+  const items: HeadingItem[] = [];
+  const headingPattern = /<h([23])\b[^>]*>([\s\S]*?)<\/h\1>/gi;
+
+  for (const match of value.matchAll(headingPattern)) {
+    const title = headingText(match[2]);
+    if (!title) continue;
+    items.push({
+      id: articleAnchor(title, items.length),
+      level: Number(match[1]) as 2 | 3,
+      title,
+    });
+  }
+
+  return items;
+}
+
+function addArticleHeadingAnchors(value: string) {
+  let headingIndex = 0;
+  return value.replace(/<h([23])\b([^>]*)>([\s\S]*?)<\/h\1>/gi, (full, level, attributes, innerHtml) => {
+    const title = headingText(innerHtml);
+    if (!title) return full;
+
+    const id = articleAnchor(title, headingIndex);
+    headingIndex += 1;
+    const attributesWithoutId = attributes.replace(/\s+id=("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+    return `<h${level}${attributesWithoutId} id="${id}">${innerHtml}</h${level}>`;
+  });
+}
+
+function headingText(value: string) {
+  return value
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 function sanitizeArticleHtml(value: string) {
   return value
     .replace(/<script[\s\S]*?<\/script>/gi, "")
