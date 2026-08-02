@@ -25,7 +25,12 @@ export function ProjectsClient({ initialData = camnangData }: { initialData?: Si
 
   const regionOptions = Object.entries(regionMeta).map(([value, meta]) => ({ value, label: meta.label || value }));
   const cityOptions = useMemo(() => {
-    const cities = Array.from(new Set(projects.filter((project) => region === "all" || project.region === region).map((project) => project.city)));
+    const cities = projects
+      .filter((project) => region === "all" || project.region === region)
+      .reduce<string[]>((values, project) => {
+        const cityName = project.city.trim();
+        return cityName && !values.some((value) => normalize(value) === normalize(cityName)) ? [...values, cityName] : values;
+      }, []);
     return [{ value: "all", label: "Tất cả tỉnh/thành" }, ...cities.map((item) => ({ value: item, label: item }))];
   }, [projects, region]);
   const segmentOptions = useMemo(() => {
@@ -46,7 +51,7 @@ export function ProjectsClient({ initialData = camnangData }: { initialData?: Si
     const tokens = normalize(query).split(/\s+/).filter(Boolean);
     return projects.filter((project) => {
       const matchesRegion = region === "all" || project.region === region;
-      const matchesCity = city === "all" || project.city === city;
+      const matchesCity = city === "all" || project.city.trim() === city;
       const matchesSegment = segment === "all" || project.segment === segment;
       const searchText = normalize([project.name, project.city, project.location, project.segment, project.summary].join(" "));
       const matchesQuery = !tokens.length || tokens.every((token) => searchText.includes(token));

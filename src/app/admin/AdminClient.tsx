@@ -4181,7 +4181,7 @@ function fieldsFor(section: NavKey, data: SiteData): FieldConfig[] {
     { key: "id", label: "ID đường dẫn", type: "text", span: 3, helper: "Ví dụ: masteri-grand-coast." },
     { key: "segment", label: "Phân khúc", type: "select", options: projectSegmentOptions(data) },
     { key: "region", label: "Miền", type: "select", options: regionOptions(data) },
-    { key: "city", label: "Tỉnh / thành phố", type: "text" },
+    { key: "city", label: "Tỉnh / thành phố", type: "select", options: projectCityOptions(data) },
     { key: "location", label: "Vị trí", type: "text" },
     { key: "address", label: "Địa chỉ hiển thị", type: "text", span: 3, helper: "Nếu bỏ trống, client sẽ tự ghép Vị trí + Tỉnh / thành phố." },
     {
@@ -4274,6 +4274,7 @@ function normalizeHomeSettings(value: unknown): CmsItem {
 function normalizeProjectItem(item: CmsItem): CmsItem {
   return {
     ...item,
+    city: stringValue(item.city).trim(),
     address: stringValue(item.address),
     mapEmbedUrl: stringValue(item.mapEmbedUrl),
     overviewItems: overviewItemsValue(item.overviewItems),

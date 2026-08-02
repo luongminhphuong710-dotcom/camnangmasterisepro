@@ -109,16 +109,29 @@ export async function PUT(request: NextRequest) {
 
     const dataToSave = session.role === "employee" ? { ...data, storeCategories: (await getSiteData()).storeCategories } : data;
     await saveSiteData(dataToSave);
-    revalidateSiteData();
+    revalidateSiteData(dataToSave);
     return json({ message: "Đã lưu dữ liệu." });
   } catch (error) {
     return errorResponse(error);
   }
 }
 
-function revalidateSiteData() {
+function revalidateSiteData(data?: unknown) {
   revalidateTag("site-data", "max");
   ["/", "/du-an", "/gian-hang", "/tin-tuc", "/near-me", "/contact"].forEach((path) => revalidatePath(path));
+
+  const source = data && typeof data === "object" && !Array.isArray(data) ? (data as Record<string, unknown>) : {};
+  revalidateDetailPaths(source.projects, "/du-an");
+  revalidateDetailPaths(source.stores, "/gian-hang");
+  revalidateDetailPaths(source.newsItems, "/tin-tuc");
+}
+
+function revalidateDetailPaths(items: unknown, basePath: string) {
+  if (!Array.isArray(items)) return;
+  for (const item of items) {
+    const id = item && typeof item === "object" ? String((item as Record<string, unknown>).id || "").trim() : "";
+    if (id) revalidatePath(`${basePath}/${encodeURIComponent(id)}`);
+  }
 }
 
 export async function DELETE(request: NextRequest) {
@@ -147,10 +160,10 @@ export async function DELETE(request: NextRequest) {
 
 async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeCategories?: unknown; newsItems?: unknown; homeSettings?: unknown }) {
   const cleanedData = repairTextTree(data);
-  const incomingStores = Array.isArray(cleanedData.stores) ? cleanedData.stores : [];
-  const incomingProjects = Array.isArray(cleanedData.projects) ? cleanedData.projects : [];
-  const incomingCategories = Array.isArray(cleanedData.storeCategories) ? cleanedData.storeCategories : [];
-  const incomingNewsItems = Array.isArray(cleanedData.newsItems) ? cleanedData.newsItems : [];
+  const incomingStores = trimIdentifierFields(Array.isArray(cleanedData.stores) ? cleanedData.stores : [], ["id", "projectId", "category"]);
+  const incomingProjects = trimIdentifierFields(Array.isArray(cleanedData.projects) ? cleanedData.projects : [], ["id"]);
+  const incomingCategories = trimIdentifierFields(Array.isArray(cleanedData.storeCategories) ? cleanedData.storeCategories : [], ["id"]);
+  const incomingNewsItems = trimIdentifierFields(Array.isArray(cleanedData.newsItems) ? cleanedData.newsItems : [], ["id", "projectId"]);
   const incomingHomeSettings = normalizeHomeSettings(cleanedData.homeSettings);
 
   if (isLocalDemoMode()) {
@@ -217,6 +230,16 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
   } else {
     await db.delete(newsItems);
   }
+}
+
+function trimIdentifierFields<T extends Record<string, unknown>>(items: T[], fields: readonly string[]): T[] {
+  return items.map((item) => {
+    const normalized = { ...item };
+    for (const field of fields) {
+      if (typeof normalized[field] === "string") normalized[field] = normalized[field].trim();
+    }
+    return normalized;
+  });
 }
 
 function normalizeHomeSettings(value: unknown) {

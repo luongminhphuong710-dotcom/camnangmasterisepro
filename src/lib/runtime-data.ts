@@ -71,7 +71,7 @@ function toNewsItemShape(row: typeof newsItems.$inferSelect): NewsItem {
   return {
     id: row.id,
     title: row.title,
-    projectId: row.projectId,
+    projectId: row.projectId.trim(),
     region: row.region,
     date: row.date,
     category: row.category,
@@ -87,10 +87,10 @@ function toNewsItemShape(row: typeof newsItems.$inferSelect): NewsItem {
 
 function toProjectShape(row: typeof projects.$inferSelect): Project {
   return {
-    id: row.id,
+    id: row.id.trim(),
     name: row.name,
     region: row.region,
-    city: row.city,
+    city: row.city.trim(),
     location: row.location,
     segment: row.segment,
     status: row.status,
@@ -131,7 +131,7 @@ function normalizeProjectOverviewItems(value: unknown) {
 
 function toCategoryShape(row: typeof storeCategories.$inferSelect): StoreCategory {
   return {
-    id: row.id,
+    id: row.id.trim(),
     label: row.label,
     icon: row.icon ?? undefined,
   };
@@ -141,8 +141,8 @@ function toStoreShape(row: typeof stores.$inferSelect): Store {
   return {
     id: row.id,
     name: row.name,
-    projectId: row.projectId,
-    category: row.category,
+    projectId: row.projectId.trim(),
+    category: row.category.trim(),
     image: row.image,
     images: row.images ?? undefined,
     floor: row.floor,

@@ -17,7 +17,8 @@ export const projectCoordinates: Record<string, { lat: number; lng: number }> = 
 };
 
 export function getProjectFromData(data: Pick<SiteData, "projects">, projectId: string | undefined): Project | undefined {
-  return data.projects.find((project) => project.id === projectId);
+  const normalizedProjectId = projectId?.trim();
+  return data.projects.find((project) => project.id.trim() === normalizedProjectId);
 }
 
 export function getCategoryFromList(categories: readonly StoreCategory[], categoryId: string | undefined) {
@@ -25,7 +26,7 @@ export function getCategoryFromList(categories: readonly StoreCategory[], catego
 }
 
 export function storesForProjectFromData(data: Pick<SiteData, "stores">, projectId: string): Store[] {
-  return data.stores.filter((store) => store.projectId === projectId);
+  return data.stores.filter((store) => store.projectId.trim() === projectId.trim());
 }
 
 export function regionLabelFromMeta(regionMeta: RegionMeta, region: string): string {
