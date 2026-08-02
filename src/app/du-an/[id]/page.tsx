@@ -50,7 +50,8 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
   const fallbackProjectAddress = [project.location, project.city].filter(Boolean).join(", ");
   const projectAddress = project.address || fallbackProjectAddress;
   const projectMapQuery = [project.name, projectAddress].filter(Boolean).join(", ");
-  const projectMapSrc = project.mapEmbedUrl || `https://www.google.com/maps?q=${encodeURIComponent(projectMapQuery)}&output=embed`;
+  const fallbackMapSrc = `https://www.google.com/maps?q=${encodeURIComponent(projectMapQuery)}&output=embed`;
+  const projectMapSrc = embeddableMapUrl(project.mapEmbedUrl) || fallbackMapSrc;
   const overviewItems = projectOverviewItems(project, regionLabel);
   const projectJsonLd = {
     "@context": "https://schema.org",
@@ -206,6 +207,18 @@ export default async function ProjectDetailPage({ params }: ProjectPageProps) {
       ) : null}
     </main>
   );
+}
+
+function embeddableMapUrl(value: string | undefined) {
+  const url = value?.trim();
+  if (!url) return undefined;
+
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === "www.google.com" && parsed.pathname.startsWith("/maps/embed") ? url : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function projectOverviewItems(project: { name: string; location: string; segment: string; overviewItems?: readonly { label: string; value: string }[] }, regionLabel: string) {
