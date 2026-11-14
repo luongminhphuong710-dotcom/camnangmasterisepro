@@ -121,8 +121,8 @@ async function listStores() {
           voucherCount: Array.isArray(row.vouchers) ? row.vouchers.length : 0,
           reviewCount: reviews.length,
           rating: reviews.length ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length).toFixed(1)) : null,
-          createdAt: row.createdAt || "",
-          updatedAt: row.updatedAt || row.createdAt || "",
+          createdAt: toIso(row.createdAt),
+          updatedAt: toIso(row.updatedAt || row.createdAt),
           url: `https://www.camnangmasterise.vn/gian-hang/${encodeURIComponent(row.id)}`,
         };
       })
@@ -382,6 +382,13 @@ function htmlToText(html: string) {
     .map((line) => line.replace(/[ \t]+/g, " ").trim())
     .filter(Boolean)
     .join("\n");
+}
+
+// Postgres returns "2026-06-25 03:29:53.128+00"; Apps Script needs ISO 8601.
+function toIso(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00"));
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
 function sameText(a: string, b: string) {

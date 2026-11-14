@@ -5,7 +5,8 @@
  *
  * - Có người gửi Form: thêm 1 dòng "Chờ duyệt" vào tab "Duyệt gian hàng" và gửi email báo ngay.
  * - Đổi cột Trạng thái thành "OK": tải ảnh lên web, đăng (hoặc cập nhật) gian hàng, ghi link vào dòng.
- * - Đổi thành "Gỡ khỏi web": xóa gian hàng do dòng đó tạo ra khỏi web.
+ * - Đổi thành "Gỡ khỏi web": xóa gian hàng của dòng đó khỏi web.
+ * - Mỗi giờ (syncFromWeb): mọi gian hàng trên web đều có 1 dòng; gian hàng tạo/sửa trong admin được cập nhật vào Sheet.
  *
  * Cài đặt một lần: chạy hàm setup() và cấp quyền. Xem docs/store-submissions.md trong repo web.
  * Bản trong repo để SYNC_SECRET là "__SECRET__"; bản thật nằm trong Google Drive của Phương.
@@ -50,13 +51,15 @@ var Q = {
 var COL = {
   ID: 1, SUBMITTED: 2, STATUS: 3, REVIEW_NOTE: 4, NAME: 5, PROJECT: 6, CATEGORY: 7, FLOOR: 8, HOURS: 9,
   PHONE: 10, NOTE: 11, DETAIL: 12, IMAGES: 13, MAP: 14, WEBSITE: 15, OFFER: 16, OFFER_CODE: 17, OFFER_EXP: 18,
-  CONTACT: 19, CONTACT_PHONE: 20, CONTACT_EMAIL: 21, WEB_ID: 22, WEB_URL: 23, UPDATED: 24, RESULT: 25
+  CONTACT: 19, CONTACT_PHONE: 20, CONTACT_EMAIL: 21, WEB_ID: 22, WEB_URL: 23, UPDATED: 24, RESULT: 25,
+  SOURCE: 26, RATING: 27, REVIEWS: 28
 };
 var HEADERS = [
   'Mã đăng ký', 'Thời gian gửi', 'Trạng thái', 'Ghi chú duyệt', 'Tên gian hàng', 'Dự án', 'Loại hình',
   'Vị trí (tòa/tầng/căn)', 'Giờ mở cửa', 'SĐT gian hàng', 'Mô tả ngắn', 'Giới thiệu chi tiết', 'Ảnh (mỗi link một dòng)',
   'Link Google Maps', 'Fanpage / Website', 'Ưu đãi cho cư dân', 'Mã ưu đãi', 'Hạn ưu đãi', 'Người liên hệ',
-  'SĐT người liên hệ', 'Email người liên hệ', 'ID trên web', 'Link trên web', 'Cập nhật lúc', 'Kết quả xử lý'
+  'SĐT người liên hệ', 'Email người liên hệ', 'ID trên web', 'Link trên web', 'Cập nhật lúc', 'Kết quả xử lý',
+  'Nguồn', 'Đánh giá TB', 'Số đánh giá'
 ];
 var STATUS = {
   PENDING: 'Chờ duyệt', OK: 'OK', FIX: 'Cần sửa', REJECT: 'Từ chối', WORKING: 'Đang đăng…',
@@ -93,6 +96,7 @@ function setup() {
   applyOptions_(form, ss, options);
   installTriggers_(ss, form);
   writeGuideLinks_(ss, form);
+  syncFromWeb();
 
   var message = 'Đã cài đặt xong.\nForm để gửi: ' + shortUrl_(form) + '\nForm để sửa: ' + form.getEditUrl() +
     '\nCòn 1 bước: mở Form để sửa, thêm câu hỏi "Tải tệp lên" tên đúng "' + Q.IMAGES + '" (xem tab Hướng dẫn).';
@@ -170,7 +174,7 @@ function renameRawSheet_(ss, form) {
 
 function ensureReviewSheet_(ss) {
   var sheet = ss.getSheetByName(CONFIG.REVIEW_SHEET) || ss.insertSheet(CONFIG.REVIEW_SHEET, 0);
-  if (sheet.getRange(1, 1).getValue() !== HEADERS[0]) {
+  if (sheet.getRange(1, 1).getValue() !== HEADERS[0] || sheet.getRange(1, HEADERS.length).getValue() !== HEADERS[HEADERS.length - 1]) {
     sheet.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]);
   }
   var statusRule = SpreadsheetApp.newDataValidation().requireValueInList(STATUS_LIST, true).setAllowInvalid(false).build();
@@ -184,6 +188,7 @@ function installTriggers_(ss, form) {
   ScriptApp.newTrigger('onReviewEdit').forSpreadsheet(ss).onEdit().create();
   ScriptApp.newTrigger('processPendingRows').timeBased().everyMinutes(10).create();
   ScriptApp.newTrigger('refreshOptions').timeBased().everyDays(1).atHour(6).create();
+  ScriptApp.newTrigger('syncFromWeb').timeBased().everyHours(1).create();
 }
 
 function writeGuideLinks_(ss, form) {
@@ -275,6 +280,7 @@ function onStoreFormSubmit(e) {
     row[COL.CONTACT - 1] = get(Q.CONTACT);
     row[COL.CONTACT_PHONE - 1] = asText_(get(Q.CONTACT_PHONE));
     row[COL.CONTACT_EMAIL - 1] = get(Q.CONTACT_EMAIL);
+    row[COL.SOURCE - 1] = 'Form';
     sheet.appendRow(row);
     var rowIndex = sheet.getLastRow();
     sheet.getRange(rowIndex, COL.SUBMITTED).setNumberFormat('dd/MM/yyyy HH:mm');
@@ -376,6 +382,7 @@ function publishRow_(sheet, rowIndex) {
     var projectMap = JSON.parse(PropertiesService.getScriptProperties().getProperty('PROJECT_MAP') || '{}');
     var result = api_('publish', {
       submissionId: cell(COL.ID),
+      storeId: cell(COL.WEB_ID),
       store: {
         name: cell(COL.NAME),
         project: projectMap[cell(COL.PROJECT)] || cell(COL.PROJECT),
@@ -409,8 +416,9 @@ function publishRow_(sheet, rowIndex) {
 
 function unpublishRow_(sheet, rowIndex) {
   var id = String(sheet.getRange(rowIndex, COL.ID).getValue()).trim();
+  var storeId = String(sheet.getRange(rowIndex, COL.WEB_ID).getValue()).trim();
   try {
-    var result = api_('unpublish', { submissionId: id });
+    var result = api_('unpublish', { submissionId: id, storeId: storeId });
     sheet.getRange(rowIndex, COL.RESULT).setValue(result.removed ? 'Đã gỡ khỏi web' : (result.message || 'Không có trên web'));
     sheet.getRange(rowIndex, COL.WEB_URL).setValue('');
     sheet.getRange(rowIndex, COL.UPDATED).setValue(new Date()).setNumberFormat('dd/MM/yyyy HH:mm');
@@ -419,6 +427,114 @@ function unpublishRow_(sheet, rowIndex) {
     sheet.getRange(rowIndex, COL.RESULT).setValue('Lỗi khi gỡ: ' + (err && err.message ? err.message : err));
     sheet.getRange(rowIndex, COL.STATUS).setValue(STATUS.ERROR);
   }
+}
+
+// ───────────────────────── Đồng bộ web → Sheet ─────────────────────────
+// Mỗi gian hàng trên web có đúng 1 dòng (khớp theo cột "ID trên web").
+// - Gian hàng chưa có dòng (tạo trong admin): thêm dòng "Đã đăng", Nguồn = Admin web.
+// - Dòng "Đã đăng" mà web được sửa sau lần cập nhật cuối của dòng: chép nội dung mới từ web.
+// - Dòng "Đã đăng" mà gian hàng không còn trên web: chuyển "Đã gỡ".
+// Dòng đang ở trạng thái khác (Chờ duyệt, OK, Cần sửa…) không bị ghi đè, để không mất phần chị đang sửa.
+
+function syncFromWeb() {
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return;
+  try {
+    var sheet = ensureReviewSheet_(SpreadsheetApp.openById(CONFIG.SHEET_ID));
+    var stores = api_('list', null, 'get').stores || [];
+    var lastRow = sheet.getLastRow();
+    var rows = lastRow > 1 ? sheet.getRange(2, 1, lastRow - 1, HEADERS.length).getValues() : [];
+    var byId = {};
+    rows.forEach(function (row, i) {
+      var webId = String(row[COL.WEB_ID - 1] || '').trim();
+      if (webId && byId[webId] === undefined) byId[webId] = i;
+    });
+    var seen = {};
+    var appended = [];
+    var now = new Date();
+
+    stores.forEach(function (store) {
+      seen[store.id] = true;
+      var i = byId[store.id];
+      if (i === undefined) {
+        var row = new Array(HEADERS.length).fill('');
+        row[COL.ID - 1] = store.submissionId || ('WEB-' + store.id);
+        row[COL.SUBMITTED - 1] = store.createdAt ? new Date(store.createdAt) : now;
+        row[COL.STATUS - 1] = STATUS.DONE;
+        writeStoreFields_(row, store, true);
+        row[COL.UPDATED - 1] = store.updatedAt ? new Date(store.updatedAt) : now;
+        row[COL.RESULT - 1] = 'Nhập từ web';
+        row[COL.SOURCE - 1] = store.submissionId ? 'Form' : 'Admin web';
+        appended.push(row);
+        return;
+      }
+      var current = rows[i];
+      var status = String(current[COL.STATUS - 1]).trim();
+      var rowUpdated = current[COL.UPDATED - 1] instanceof Date ? current[COL.UPDATED - 1].getTime() : 0;
+      var webUpdated = store.updatedAt ? new Date(store.updatedAt).getTime() : 0;
+      var changed = false;
+      if (status === STATUS.DONE && webUpdated > rowUpdated + 60000) {
+        writeStoreFields_(current, store, false);
+        current[COL.UPDATED - 1] = new Date(webUpdated);
+        current[COL.RESULT - 1] = 'Đồng bộ từ web (sửa trong admin)';
+        changed = true;
+      }
+      if (status === STATUS.REMOVED) {
+        current[COL.STATUS - 1] = STATUS.DONE;
+        current[COL.RESULT - 1] = 'Có lại trên web';
+        changed = true;
+      }
+      if (String(current[COL.WEB_URL - 1]) !== store.url ||
+          String(current[COL.RATING - 1]) !== String(store.rating == null ? '' : store.rating) ||
+          String(current[COL.REVIEWS - 1]) !== String(store.reviewCount)) {
+        current[COL.WEB_URL - 1] = store.url;
+        current[COL.RATING - 1] = store.rating == null ? '' : store.rating;
+        current[COL.REVIEWS - 1] = store.reviewCount;
+        changed = true;
+      }
+      if (changed) sheet.getRange(i + 2, 1, 1, HEADERS.length).setValues([current]);
+    });
+
+    rows.forEach(function (row, i) {
+      var webId = String(row[COL.WEB_ID - 1] || '').trim();
+      if (webId && !seen[webId] && String(row[COL.STATUS - 1]).trim() === STATUS.DONE) {
+        sheet.getRange(i + 2, COL.STATUS).setValue(STATUS.REMOVED);
+        sheet.getRange(i + 2, COL.RESULT).setValue('Không còn trên web (đã xóa trong admin)');
+        sheet.getRange(i + 2, COL.WEB_URL).setValue('');
+      }
+    });
+
+    if (appended.length) {
+      var start = sheet.getLastRow() + 1;
+      sheet.getRange(start, 1, appended.length, HEADERS.length).setValues(appended);
+      sheet.getRange(start, COL.SUBMITTED, appended.length, 1).setNumberFormat('dd/MM/yyyy HH:mm');
+      sheet.getRange(start, COL.UPDATED, appended.length, 1).setNumberFormat('dd/MM/yyyy HH:mm');
+    }
+    PropertiesService.getScriptProperties().setProperty('LAST_SYNC', now.toISOString());
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function writeStoreFields_(row, store, isNew) {
+  row[COL.NAME - 1] = store.name;
+  row[COL.PROJECT - 1] = store.projectName;
+  row[COL.CATEGORY - 1] = store.category;
+  row[COL.FLOOR - 1] = store.floor;
+  row[COL.HOURS - 1] = store.hours;
+  row[COL.PHONE - 1] = store.phone;
+  row[COL.NOTE - 1] = store.note;
+  row[COL.DETAIL - 1] = store.detail;
+  row[COL.IMAGES - 1] = (store.images || []).join('\n');
+  row[COL.MAP - 1] = store.mapEmbedUrl;
+  row[COL.OFFER - 1] = store.voucher ? store.voucher.description : '';
+  row[COL.OFFER_CODE - 1] = store.voucher ? store.voucher.code : '';
+  row[COL.OFFER_EXP - 1] = store.voucher ? store.voucher.expires : '';
+  row[COL.WEB_ID - 1] = store.id;
+  row[COL.WEB_URL - 1] = store.url;
+  row[COL.RATING - 1] = store.rating == null ? '' : store.rating;
+  row[COL.REVIEWS - 1] = store.reviewCount;
+  if (isNew) row[COL.WEBSITE - 1] = '';
 }
 
 // Ảnh trên Google Drive được tải lên web (Cloudinary) một lần; link Cloudinary được nhớ lại
