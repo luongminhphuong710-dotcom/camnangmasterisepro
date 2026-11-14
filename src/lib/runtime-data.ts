@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db/client";
 import { newsItems, projects, siteSettings, storeCategories, stores } from "@/lib/db/schema";
+import newsQueue from "@/content/news-queue.json";
 import { camnangData } from "@/lib/data";
 import { getLocalDemoSiteData, isLocalDemoMode } from "@/lib/local-demo-store";
 import type { NewsItem, Project, SiteData, SiteHomeSettings, Store, StoreCategory } from "@/lib/site-types";
@@ -114,6 +115,64 @@ async function ensureProjectColumns() {
       ADD COLUMN IF NOT EXISTS overview_items jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
   await clearOldStorePhoneOnce();
+  await importQueuedNews();
+}
+
+// Articles published by the content automation are appended to
+// src/content/news-queue.json. Each one is copied into news_items once; a marker
+// row in site_settings records the import, so an article later edited or deleted
+// in the CMS is never overwritten or brought back.
+const NEWS_IMPORT_PREFIX = "news-import:";
+
+type QueuedNews = {
+  id: string;
+  title: string;
+  projectId?: string;
+  region?: string;
+  date: string;
+  category?: string;
+  hashtags?: string[];
+  image: string;
+  excerpt: string;
+  contentHtml: string;
+};
+
+async function importQueuedNews() {
+  const queue = (newsQueue as QueuedNews[]).filter((item) => item?.id && item.title && item.contentHtml);
+  if (queue.length === 0) return;
+  try {
+    const result = await db.execute(sql`SELECT key FROM site_settings WHERE key LIKE ${`${NEWS_IMPORT_PREFIX}%`}`);
+    const imported = new Set(result.rows.map((row) => String((row as { key: unknown }).key)));
+    for (const item of queue) {
+      const markerKey = `${NEWS_IMPORT_PREFIX}${item.id}`;
+      if (imported.has(markerKey)) continue;
+      const now = new Date().toISOString();
+      await db
+        .insert(newsItems)
+        .values({
+          id: item.id,
+          title: item.title,
+          projectId: item.projectId || "",
+          region: item.region || "",
+          date: item.date,
+          category: item.category || "Tin tức",
+          hashtags: item.hashtags || [],
+          image: item.image,
+          excerpt: item.excerpt,
+          content: [],
+          contentHtml: item.contentHtml,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .onConflictDoNothing();
+      await db
+        .insert(siteSettings)
+        .values({ key: markerKey, value: { importedAt: now }, updatedAt: now })
+        .onConflictDoNothing();
+    }
+  } catch (error) {
+    console.error("importQueuedNews failed", error);
+  }
 }
 
 // One-time cleanup: remove the old default contact number 0988 458 783 from every
