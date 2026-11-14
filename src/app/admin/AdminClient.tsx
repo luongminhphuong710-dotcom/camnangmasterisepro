@@ -4335,7 +4335,7 @@ function createStore(data: SiteData): CmsItem {
     image: "",
     floor: "",
     hours: "08:00 - 20:00",
-    phone: "0988 458 783",
+    phone: "",
     address: "",
     mapEmbedUrl: "",
     detailContent: "",

@@ -113,6 +113,30 @@ async function ensureProjectColumns() {
       ADD COLUMN IF NOT EXISTS map_embed_url text,
       ADD COLUMN IF NOT EXISTS overview_items jsonb NOT NULL DEFAULT '[]'::jsonb
   `);
+  await clearOldStorePhoneOnce();
+}
+
+// One-time cleanup: remove the old default contact number 0988 458 783 from every
+// store. A marker row in site_settings records that it ran, so a number set later
+// in the CMS is never touched.
+const CLEAR_OLD_STORE_PHONE_KEY = "migration:clear-store-phone-0988458783";
+
+async function clearOldStorePhoneOnce() {
+  try {
+    const done = await db.execute(sql`SELECT 1 FROM site_settings WHERE key = ${CLEAR_OLD_STORE_PHONE_KEY} LIMIT 1`);
+    if (done.rows.length > 0) return;
+    await db.execute(sql`
+      UPDATE stores SET phone = ''
+      WHERE regexp_replace(phone, '[^0-9]', '', 'g') IN ('0988458783', '988458783', '84988458783')
+    `);
+    const now = new Date().toISOString();
+    await db
+      .insert(siteSettings)
+      .values({ key: CLEAR_OLD_STORE_PHONE_KEY, value: { ranAt: now }, updatedAt: now })
+      .onConflictDoNothing();
+  } catch (error) {
+    console.error("clearOldStorePhoneOnce failed", error);
+  }
 }
 
 function normalizeProjectOverviewItems(value: unknown) {

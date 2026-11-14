@@ -37,6 +37,8 @@ export function StorePhoneContact({ storeName, phone, className = "primary-butto
     setIsCopied(true);
   }
 
+  if (!phone.trim()) return null;
+
   return (
     <>
       <a className={`${className} store-phone-mobile`} href={phoneHref}>

@@ -152,7 +152,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
     description: shortDescription,
     image: gallery[0] || fallbackImage,
     url: `${siteUrl}/gian-hang/${store.id}`,
-    telephone: store.phone,
+    telephone: store.phone.trim() || undefined,
     address,
     openingHours: store.hours,
     aggregateRating:
@@ -199,7 +199,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               ) : null}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className={`mt-5 grid gap-3 ${store.phone.trim() ? "grid-cols-2" : "grid-cols-1"}`}>
               <StorePhoneContact storeName={store.name} phone={store.phone} />
 
               <a
@@ -275,14 +275,16 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
           <div className="order-8 lg:order-none">
             <ContentBlock id="map" eyebrow="Liên hệ" title="Chỉ đường đến gian hàng">
-              <div className="mb-4 grid gap-3 md:grid-cols-2">
-                <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
-                  <Phone className="mt-0.5 shrink-0 text-masterise-primary" size={18} aria-hidden />
-                  <span>
-                    <span className="mb-1.5 block text-xs font-semibold uppercase text-masterise-primary">Số điện thoại</span>
-                    {store.phone}
-                  </span>
-                </p>
+              <div className={`mb-4 grid gap-3 ${store.phone.trim() ? "md:grid-cols-2" : ""}`}>
+                {store.phone.trim() ? (
+                  <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
+                    <Phone className="mt-0.5 shrink-0 text-masterise-primary" size={18} aria-hidden />
+                    <span>
+                      <span className="mb-1.5 block text-xs font-semibold uppercase text-masterise-primary">Số điện thoại</span>
+                      {store.phone}
+                    </span>
+                  </p>
+                ) : null}
                 <p className="flex items-start gap-3 rounded-lg bg-masterise-surface p-4 text-sm font-semibold text-masterise-muted">
                   <MapPin className="mt-0.5 shrink-0 text-masterise-primary" size={18} aria-hidden />
                   <span className="leading-[1.45]">
@@ -342,7 +344,7 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
               ) : null}
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
+            <div className={`mt-5 grid gap-3 ${store.phone.trim() ? "grid-cols-2" : "grid-cols-1"}`}>
               <StorePhoneContact storeName={store.name} phone={store.phone} />
 
               <a

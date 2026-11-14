@@ -234,11 +234,12 @@ async function saveSiteData(data: { stores?: unknown; projects?: unknown; storeC
 
 function trimIdentifierFields<T extends Record<string, unknown>>(items: T[], fields: readonly string[]): T[] {
   return items.map((item) => {
-    const normalized = { ...item };
+    const normalized: Record<string, unknown> = { ...item };
     for (const field of fields) {
-      if (typeof normalized[field] === "string") normalized[field] = normalized[field].trim();
+      const value = normalized[field];
+      if (typeof value === "string") normalized[field] = value.trim();
     }
-    return normalized;
+    return normalized as T;
   });
 }
 
