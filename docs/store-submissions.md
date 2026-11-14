@@ -19,12 +19,15 @@ Luồng: **Google Form → Google Sheet (duyệt) → web**.
    - Sheet ghi `Đã đăng`, ID, link, thời gian. Lỗi → `Lỗi` + lý do + email.
 3. **Gỡ khỏi web** → `?action=unpublish` xóa gian hàng do dòng đó tạo.
 4. Trigger 10 phút/lần (`processPendingRows`) xử lý dòng `OK` bị sót; trigger 6h hằng ngày (`refreshOptions`) cập nhật danh sách Dự án/Loại hình cho Form và Sheet từ `?action=options`.
+5. Trigger mỗi giờ (`syncFromWeb`, cũng chạy cuối `setup()`) gọi `?action=list`: mọi gian hàng trên web có đúng 1 dòng (khớp cột V "ID trên web"). Gian hàng chưa có dòng → thêm dòng `Đã đăng`, mã `WEB-<id>`, Nguồn `Admin web`. Dòng `Đã đăng` mà web sửa sau cột X → chép nội dung từ web. Dòng `Đã đăng` mà web không còn → `Đã gỡ`. Dòng ở trạng thái khác không bị ghi đè.
+6. Tab **Báo cáo** chỉ có công thức (locale vi_VN nên dấu phân cách là `;`): tổng quan trạng thái, thiếu thông tin, pivot theo dự án / loại hình, danh sách việc cần xử lý, danh sách gian hàng thiếu SĐT/mô tả.
 
 ## Quy tắc của API
 - Mọi request cần header `x-store-sync-secret`. Thiếu biến môi trường → 503.
 - Dự án nhận theo id hoặc tên; Loại hình theo id hoặc nhãn (bỏ qua `all`, `unassigned`). Sai → 400 kèm danh sách hợp lệ.
-- ID gian hàng = slug của tên; trùng thì thêm `-<projectId>` hoặc số. Duyệt lại cùng một dòng = cập nhật đúng gian hàng đó; không đụng gian hàng tạo trong admin.
-- Khi cập nhật: giữ nguyên đánh giá; giữ ảnh/ưu đãi cũ nếu dòng để trống.
+- ID gian hàng = slug của tên; trùng thì thêm `-<projectId>` hoặc số. Duyệt lại cùng một dòng = cập nhật đúng gian hàng đó.
+- Gian hàng tạo trong admin: `publish`/`unpublish` gửi kèm `storeId` (cột V); nếu chưa dòng nào quản lý gian hàng đó thì dòng này nhận quản lý (ghi mốc). Gian hàng đã có dòng khác quản lý → lỗi 409.
+- Khi cập nhật: giữ nguyên đánh giá; giữ ảnh cũ nếu ô ảnh trống; giữ HTML chi tiết nếu chữ trong ô Giới thiệu không đổi (so sánh sau khi bỏ thẻ HTML); giữ danh sách ưu đãi nếu ưu đãi đầu tiên không đổi, đổi thì thay ưu đãi đầu tiên.
 - Link Google Maps (kể cả `maps.app.goo.gl`) được đổi sang dạng nhúng; không đổi được thì trang dùng bản đồ tìm theo tên + vị trí.
 - Nội dung chi tiết = các đoạn "Giới thiệu chi tiết" + link fanpage + câu kết chuẩn của Cẩm nang.
 
@@ -35,4 +38,5 @@ Luồng: **Google Form → Google Sheet (duyệt) → web**.
 
 ## Giới hạn đã biết
 - Apps Script không tạo được câu hỏi "Tải tệp lên", nên câu **"Ảnh gian hàng"** được thêm tay trong Form (đúng tên đó). Câu hỏi tải tệp bắt người điền đăng nhập Google; có câu "Link ảnh" dự phòng.
-- Sheet đọc theo vị trí cột A–Y: không chèn/xóa cột giữa bảng.
+- Sheet đọc theo vị trí cột A–AB (Z Nguồn, AA Đánh giá TB, AB Số đánh giá): không chèn/xóa cột giữa bảng.
+- Ô Ưu đãi chỉ chứa ưu đãi đầu tiên; xóa ưu đãi phải làm trong admin.
