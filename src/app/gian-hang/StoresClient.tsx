@@ -3,10 +3,19 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Building2, ChevronDown, ChevronLeft, ChevronRight, Search, Store as StoreIcon, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type MouseEvent as ReactMouseEvent } from "react";
 import { StoreCard } from "@/components/StoreCard";
 import type { SiteData, Store } from "@/lib/site-types";
 import { getCategoryFromList, getProjectFromData, normalize } from "@/lib/site-utils";
+import {
+  buildStoresListUrl,
+  clearOpenedFromList,
+  getRememberedProject,
+  markOpenedFromList,
+  rememberProject,
+  rememberStoresList,
+  storeIdFromHref,
+} from "@/lib/store-navigation";
 
 const pageSize = 12;
 const hiddenClientCategoryIds = new Set(["unassigned"]);
@@ -21,6 +30,9 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
   const searchParams = useSearchParams();
   const urlCategory = searchParams.get("category") || initialCategory;
   const urlProjectId = searchParams.get("project") || initialProjectId;
+  const urlQuery = searchParams.get("q") || "";
+  const urlPage = Math.max(1, Number.parseInt(searchParams.get("page") || "1", 10) || 1);
+
   const { fallbackImage, projects, storeCategories, stores } = data;
   const visibleStoreCategories = useMemo(
     () => storeCategories.filter((category) => !isHiddenClientCategory(category.id, category.label)),
@@ -32,11 +44,19 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
   );
   const initialProject = getProjectFromData(data, urlProjectId);
   const hasInitialCategory = visibleStoreCategories.some((item) => item.id === urlCategory);
-  const [projectId, setProjectId] = useState(initialProject?.id ?? "all");
+  // No project in the URL: start from the project the visitor picked last time
+  // (residents browse their own project). An explicit ?project= always wins.
+  const rememberedProjectId = useSyncExternalStore(subscribeToNothing, getRememberedProject, getNoRememberedProject);
+  const [selectedProjectId, setProjectId] = useState<string | null>(
+    searchParams.has("project") ? (initialProject?.id ?? "all") : null,
+  );
+  const projectId =
+    selectedProjectId ??
+    (rememberedProjectId && projects.some((project) => project.id === rememberedProjectId) ? rememberedProjectId : "all");
   const [category, setCategory] = useState(hasInitialCategory ? urlCategory : "all");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(urlQuery);
   const [projectQuery, setProjectQuery] = useState("");
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(urlPage);
   const [isProjectOpen, setIsProjectOpen] = useState(false);
   const [isSuggestionOpen, setIsSuggestionOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -94,12 +114,34 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
   function updateProject(value: string) {
     setProjectId(value);
     setPage(1);
+    rememberProject(value);
   }
 
   function updateCategory(value: string) {
     setCategory(value);
-    setProjectId("all");
     setPage(1);
+  }
+
+  // Back on the list: any "opened from the list" flag left from an earlier
+  // visit is stale now.
+  useEffect(() => {
+    clearOpenedFromList();
+  }, []);
+
+  // Mirror the filters in the URL so the browser Back button, shared links and
+  // the store detail page all return to exactly this list.
+  useEffect(() => {
+    const url = buildStoresListUrl({ projectId, category, query, page: currentPage });
+    if (`${window.location.pathname}${window.location.search}` !== url) {
+      window.history.replaceState(window.history.state, "", url);
+    }
+    rememberStoresList(url);
+  }, [category, currentPage, projectId, query]);
+
+  function rememberOpenedStore(event: ReactMouseEvent<HTMLElement>) {
+    const link = (event.target as HTMLElement).closest("a");
+    const storeId = storeIdFromHref(link?.getAttribute("href") ?? null);
+    if (storeId) markOpenedFromList(storeId);
   }
 
   function updateQuery(value: string) {
@@ -125,7 +167,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
 
   return (
     <>
-      <div className="catalog-filter-bar mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2">
+      <div className="catalog-filter-bar mb-8 grid gap-3 rounded-lg border border-masterise-line bg-white p-4 md:grid-cols-2" onClickCapture={rememberOpenedStore}>
         <div className="filter-field rounded-lg border border-masterise-line">
           <Building2 size={19} aria-hidden className="text-masterise-primary" />
           <div className="store-project-select">
@@ -293,7 +335,7 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
         ) : null}
       </div>
 
-      <div className="store-grid">
+      <div className="store-grid" onClickCapture={rememberOpenedStore}>
         {visibleItems.length ? (
           visibleItems.map((store) => (
             <StoreCard
@@ -350,6 +392,14 @@ export function StoresClient({ data, initialCategory = "all", initialProjectId =
       ) : null}
     </>
   );
+}
+
+function subscribeToNothing() {
+  return () => undefined;
+}
+
+function getNoRememberedProject() {
+  return null;
 }
 
 function storeRating(store: Store) {

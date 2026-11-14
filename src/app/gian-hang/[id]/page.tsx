@@ -14,6 +14,7 @@ import {
   TicketPercent,
   type LucideIcon,
 } from "lucide-react";
+import { StoreBreadcrumb } from "@/components/StoreBreadcrumb";
 import { StoreCard } from "@/components/StoreCard";
 import { StorePhoneContact } from "@/components/StorePhoneContact";
 import { StoreReviewBox } from "@/components/StoreReviewBox";
@@ -85,18 +86,24 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
     reviews?: CmsStoreReview[];
     vouchers?: CmsStoreVoucher[];
   };
-  const relatedStores = stores
-    .filter((item) => {
-      if (item.id === store.id) return false;
-      const itemProject = getProjectFromData(data, item.projectId);
-      return itemProject?.region === project?.region;
-    })
-    .sort((a, b) => {
-      const aSameCategory = a.category === store.category ? 0 : 1;
-      const bSameCategory = b.category === store.category ? 0 : 1;
-      return aSameCategory - bSameCategory || storeRating(b) - storeRating(a);
-    })
-    .slice(0, 8);
+  // Visitors browsing a store care about the project they are in, so related
+  // stores come from the same project first (same category, then rating). Only
+  // when the project has no other store do we fall back to the same region.
+  const byRelevance = (a: StoreItem, b: StoreItem) => {
+    const aSameCategory = a.category === store.category ? 0 : 1;
+    const bSameCategory = b.category === store.category ? 0 : 1;
+    return aSameCategory - bSameCategory || storeRating(b) - storeRating(a);
+  };
+  const sameProjectStores = stores.filter((item) => item.id !== store.id && item.projectId === store.projectId).sort(byRelevance);
+  const showsSameProject = sameProjectStores.length > 0;
+  const relatedStores = (
+    showsSameProject
+      ? sameProjectStores
+      : stores
+          .filter((item) => item.id !== store.id && getProjectFromData(data, item.projectId)?.region === project?.region)
+          .sort(byRelevance)
+  ).slice(0, 8);
+  const projectStoresUrl = project ? `/gian-hang?project=${encodeURIComponent(project.id)}` : "/gian-hang";
   const storeImages = "images" in store && Array.isArray(store.images) ? store.images.map(String) : [];
   const gallery = Array.from(new Set([...storeImages, store.image].flatMap((image) => (image ? [String(image)] : []))));
   const address = [store.floor, project?.name, project?.location, project?.city].filter(Boolean).join(", ");
@@ -215,23 +222,14 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
           </section>
 
           <div className="order-1 lg:order-none">
-            <nav aria-label="Breadcrumb gian hàng" className="mb-3 flex min-w-0 items-center gap-2 text-xs font-semibold uppercase text-masterise-primary">
-              <Link className="shrink-0 transition hover:text-masterise-dark" href="/gian-hang">
-                Gian hàng
-              </Link>
-              <span aria-hidden className="shrink-0 text-masterise-muted">
-                /
-              </span>
-              <Link className="min-w-0 truncate transition hover:text-masterise-dark" href={`/gian-hang?category=${store.category}`}>
-                {category.label}
-              </Link>
-              <span aria-hidden className="shrink-0 text-masterise-muted">
-                /
-              </span>
-              <span className="min-w-0 truncate text-masterise-muted" aria-current="page">
-                {store.name}
-              </span>
-            </nav>
+            <StoreBreadcrumb
+              storeId={store.id}
+              storeName={store.name}
+              projectId={project?.id}
+              projectName={project?.name}
+              categoryId={store.category}
+              categoryLabel={category.label}
+            />
             <StoreHeroGallery images={gallery} storeName={store.name} />
           </div>
 
@@ -363,9 +361,16 @@ export default async function StoreDetailPage({ params }: StorePageProps) {
 
       {relatedStores.length ? (
         <section className="mt-12 border-t border-masterise-line pt-8">
-          <div className="mb-6 flex items-center gap-2 text-xl font-semibold uppercase tracking-normal text-masterise-primary">
-            <Building2 size={22} aria-hidden className="shrink-0" />
-            Gian hàng cùng khu vực
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xl font-semibold uppercase tracking-normal text-masterise-primary">
+              <Building2 size={22} aria-hidden className="shrink-0" />
+              {showsSameProject && project ? `Gian hàng khác tại ${project.name}` : "Gian hàng cùng khu vực"}
+            </div>
+            {showsSameProject && project ? (
+              <Link className="secondary-button" href={projectStoresUrl}>
+                Xem tất cả gian hàng tại {project.name}
+              </Link>
+            ) : null}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {relatedStores.map((relatedStore) => (
