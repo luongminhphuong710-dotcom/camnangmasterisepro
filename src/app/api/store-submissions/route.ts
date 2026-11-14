@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse, type NextRequest } from "next/server";
 import { uploadCmsImage } from "@/lib/cloudinary";
@@ -41,13 +41,15 @@ type StoreInput = {
 };
 
 type Marker = { storeId?: string; publishedAt?: string };
+type StoreVoucherRow = { code: string; title?: string; description: string; expires: string; redeemCount?: number };
 
 export async function GET(request: NextRequest) {
   try {
     requireSecret(request);
     const action = request.nextUrl.searchParams.get("action");
-    if (action !== "options") throw statusError("Action không hợp lệ.", 404);
-    return json(await loadOptions());
+    if (action === "options") return json(await loadOptions());
+    if (action === "list") return json(await listStores());
+    throw statusError("Action không hợp lệ.", 404);
   } catch (error) {
     return errorResponse(error);
   }
@@ -61,6 +63,7 @@ export async function POST(request: NextRequest) {
     if (action === "publish") return await handlePublish(request);
     if (action === "unpublish") return await handleUnpublish(request);
     if (action === "options") return json(await loadOptions());
+    if (action === "list") return json(await listStores());
     throw statusError("Action không hợp lệ.", 404);
   } catch (error) {
     return errorResponse(error);
@@ -79,6 +82,71 @@ async function loadOptions() {
   };
 }
 
+// Every store on the site, flattened for the review Sheet. `submissionId` is the
+// Sheet row that manages the store (empty for stores only edited in the CMS).
+async function listStores() {
+  const [storeRows, projectRows, categoryRows, markerRows] = await Promise.all([
+    db.select().from(stores),
+    db.select().from(projects),
+    db.select().from(storeCategories),
+    db.execute(sql`SELECT key, value FROM site_settings WHERE key LIKE ${`${MARKER_PREFIX}%`}`),
+  ]);
+  const owners = new Map<string, string>();
+  for (const row of markerRows.rows as Array<{ key: string; value: Marker | null }>) {
+    if (row.value?.storeId) owners.set(row.value.storeId, row.key.slice(MARKER_PREFIX.length));
+  }
+  const projectName = new Map(projectRows.map((row) => [row.id.trim(), row.name.trim()]));
+  const categoryLabel = new Map(categoryRows.map((row) => [row.id.trim(), row.label.trim()]));
+  return {
+    stores: storeRows
+      .map((row) => {
+        const reviews = Array.isArray(row.reviews) ? row.reviews.filter((review) => review?.name && review?.comment) : [];
+        const voucher = Array.isArray(row.vouchers) ? row.vouchers[0] : undefined;
+        const images = Array.isArray(row.images) && row.images.length ? row.images : row.image ? [row.image] : [];
+        return {
+          id: row.id,
+          submissionId: owners.get(row.id) || "",
+          name: row.name.trim(),
+          projectId: row.projectId.trim(),
+          projectName: projectName.get(row.projectId.trim()) || row.projectId.trim(),
+          category: categoryLabel.get(row.category.trim()) || row.category.trim(),
+          floor: row.floor.trim(),
+          hours: row.hours.trim(),
+          phone: row.phone.trim(),
+          note: row.note.trim(),
+          detail: htmlToText(row.detailContent || ""),
+          images,
+          mapEmbedUrl: (row.mapEmbedUrl || "").trim(),
+          voucher: voucher ? { description: voucher.description || "", code: voucher.code || "", expires: voucher.expires || "" } : null,
+          voucherCount: Array.isArray(row.vouchers) ? row.vouchers.length : 0,
+          reviewCount: reviews.length,
+          rating: reviews.length ? Number((reviews.reduce((sum, review) => sum + Number(review.rating || 0), 0) / reviews.length).toFixed(1)) : null,
+          createdAt: row.createdAt || "",
+          updatedAt: row.updatedAt || row.createdAt || "",
+          url: `https://www.camnangmasterise.vn/gian-hang/${encodeURIComponent(row.id)}`,
+        };
+      })
+      .sort((a, b) => a.projectName.localeCompare(b.projectName, "vi") || a.name.localeCompare(b.name, "vi")),
+  };
+}
+
+// A store created in the CMS can be taken over by a Sheet row that names it
+// (column "ID trên web"), as long as no other row manages it already.
+async function adoptStore(storeIdHint: unknown, markerKey: string) {
+  const storeId = cleanText(storeIdHint, 160);
+  if (!storeId) return undefined;
+  const store = (await db.select().from(stores).where(eq(stores.id, storeId)))[0];
+  if (!store) return undefined;
+  const owners = await db.execute(
+    sql`SELECT key FROM site_settings WHERE key LIKE ${`${MARKER_PREFIX}%`} AND value->>'storeId' = ${storeId}`,
+  );
+  const otherOwner = (owners.rows as Array<{ key: string }>).find((row) => row.key !== markerKey);
+  if (otherOwner) {
+    throw statusError(`Gian hàng "${storeId}" đang được quản lý bởi dòng ${otherOwner.key.slice(MARKER_PREFIX.length)}.`, 409);
+  }
+  return store;
+}
+
 async function handleUpload(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file");
@@ -91,7 +159,7 @@ async function handleUpload(request: NextRequest) {
 }
 
 async function handlePublish(request: NextRequest) {
-  const body = (await request.json()) as { submissionId?: unknown; store?: StoreInput };
+  const body = (await request.json()) as { submissionId?: unknown; storeId?: unknown; store?: StoreInput };
   const submissionId = cleanText(body.submissionId, 80);
   if (!submissionId) throw statusError("Thiếu mã đăng ký.", 400);
   const input = body.store || {};
@@ -114,13 +182,14 @@ async function handlePublish(request: NextRequest) {
   const markerKey = `${MARKER_PREFIX}${submissionId}`;
   const markerRows = await db.select().from(siteSettings).where(eq(siteSettings.key, markerKey));
   const marker = (markerRows[0]?.value || {}) as Marker;
-  const existing = marker.storeId ? (await db.select().from(stores).where(eq(stores.id, marker.storeId)))[0] : undefined;
-  const storeId = existing?.id || (marker.storeId && !existing ? await freeId(marker.storeId) : await uniqueStoreId(name, project.id.trim()));
+  const existing = marker.storeId
+    ? (await db.select().from(stores).where(eq(stores.id, marker.storeId)))[0]
+    : await adoptStore(body.storeId, markerKey);
+  const storeId = existing?.id || (marker.storeId ? await freeId(marker.storeId) : await uniqueStoreId(name, project.id.trim()));
 
   const imageUrls = await resolveImages(input.images, storeId);
   const projectId = project.id.trim();
   const now = new Date().toISOString();
-  const voucher = buildVoucher(input.voucher);
   const values = {
     name,
     projectId,
@@ -132,8 +201,8 @@ async function handlePublish(request: NextRequest) {
     phone: cleanText(input.phone, 40),
     note: cleanText(input.note, 400),
     mapEmbedUrl: (await toMapEmbed(cleanText(input.mapUrl, 2000))) || existing?.mapEmbedUrl || "",
-    detailContent: buildDetailHtml(name, project.name.trim(), cleanText(input.detail, 6000), cleanText(input.website, 500)),
-    vouchers: voucher ? [voucher] : existing?.vouchers || [],
+    detailContent: resolveDetail(existing?.detailContent || "", name, project.name.trim(), cleanText(input.detail, 20000), cleanText(input.website, 500)),
+    vouchers: resolveVouchers(existing?.vouchers || [], input.voucher),
     updatedAt: now,
   };
 
@@ -166,17 +235,20 @@ async function handlePublish(request: NextRequest) {
 }
 
 async function handleUnpublish(request: NextRequest) {
-  const body = (await request.json()) as { submissionId?: unknown };
+  const body = (await request.json()) as { submissionId?: unknown; storeId?: unknown };
   const submissionId = cleanText(body.submissionId, 80);
   if (!submissionId) throw statusError("Thiếu mã đăng ký.", 400);
   const markerKey = `${MARKER_PREFIX}${submissionId}`;
   const marker = ((await db.select().from(siteSettings).where(eq(siteSettings.key, markerKey)))[0]?.value || {}) as Marker;
-  if (!marker.storeId) return json({ removed: false, message: "Gian hàng này chưa từng được đăng." });
-  const existing = (await db.select().from(stores).where(eq(stores.id, marker.storeId)))[0];
-  if (existing) await db.delete(stores).where(eq(stores.id, marker.storeId));
+  const existing = marker.storeId
+    ? (await db.select().from(stores).where(eq(stores.id, marker.storeId)))[0]
+    : await adoptStore(body.storeId, markerKey);
+  const storeId = marker.storeId || existing?.id;
+  if (!storeId) return json({ removed: false, message: "Gian hàng này không có trên web." });
+  if (existing) await db.delete(stores).where(eq(stores.id, storeId));
   await db.delete(siteSettings).where(eq(siteSettings.key, markerKey));
-  revalidateStorePaths([marker.storeId], [existing?.projectId?.trim()]);
-  return json({ removed: Boolean(existing), storeId: marker.storeId });
+  revalidateStorePaths([storeId], [existing?.projectId?.trim()]);
+  return json({ removed: Boolean(existing), storeId });
 }
 
 function revalidateStorePaths(storeIds: string[], projectIds: Array<string | undefined>) {
@@ -262,6 +334,61 @@ function buildVoucher(value: StoreInput["voucher"]) {
   return { code, title: "", description, expires: cleanText(value.expires, 80) || "Số lượng có hạn", redeemCount: 0 };
 }
 
+// Keep the stored voucher list when the Sheet still shows the same first voucher
+// (extra vouchers and redeem counts set in the CMS survive); otherwise the
+// Sheet's voucher replaces the first one.
+function resolveVouchers(existing: StoreVoucherRow[], value: StoreInput["voucher"]) {
+  const voucher = buildVoucher(value);
+  if (!voucher) return existing;
+  const first = existing[0];
+  const givenCode = cleanText(value?.code, 40);
+  if (
+    first &&
+    cleanText(first.description, 300) === voucher.description &&
+    (!givenCode || cleanText(first.code, 40).toUpperCase() === voucher.code) &&
+    (!cleanText(value?.expires, 80) || cleanText(first.expires, 80) === voucher.expires)
+  ) {
+    return existing;
+  }
+  return [voucher, ...existing.slice(1)];
+}
+
+// The Sheet carries the detail as plain text. If it still matches the stored
+// rich text, keep the stored HTML (formatting, links) instead of rebuilding it.
+function resolveDetail(existingHtml: string, name: string, projectName: string, detail: string, website: string) {
+  if (existingHtml && sameText(htmlToText(existingHtml), detail)) {
+    const link = safeUrl(website);
+    const bareLink = link.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    if (link && !existingHtml.includes(bareLink)) {
+      return `${existingHtml}<p>Fanpage/Website: <a href="${escapeHtml(link)}" target="_blank" rel="noopener nofollow">${escapeHtml(link)}</a></p>`;
+    }
+    return existingHtml;
+  }
+  return buildDetailHtml(name, projectName, detail, website);
+}
+
+function htmlToText(html: string) {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .split("\n")
+    .map((line) => line.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function sameText(a: string, b: string) {
+  const flat = (value: string) => value.replace(/\s+/g, " ").trim();
+  return flat(a) === flat(b);
+}
+
 function buildDetailHtml(name: string, projectName: string, detail: string, website: string) {
   const paragraphs = detail
     .split(/\n\s*\n|\r?\n/)
@@ -272,9 +399,11 @@ function buildDetailHtml(name: string, projectName: string, detail: string, webs
   if (link) {
     paragraphs.push(`<p>Fanpage/Website: <a href="${escapeHtml(link)}" target="_blank" rel="noopener nofollow">${escapeHtml(link)}</a></p>`);
   }
-  paragraphs.push(
-    `<p>${escapeHtml(name)} là một trong những tiện ích tại dự án ${escapeHtml(projectName)}. Hãy theo dõi Cẩm nang Masterise để biết thêm nhiều thông tin hữu ích khác!</p>`,
-  );
+  if (!/cẩm nang masterise/i.test(detail)) {
+    paragraphs.push(
+      `<p>${escapeHtml(name)} là một trong những tiện ích tại dự án ${escapeHtml(projectName)}. Hãy theo dõi Cẩm nang Masterise để biết thêm nhiều thông tin hữu ích khác!</p>`,
+    );
+  }
   return paragraphs.join("");
 }
 
