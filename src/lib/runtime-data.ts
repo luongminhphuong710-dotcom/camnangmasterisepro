@@ -133,6 +133,12 @@ type QueuedNews = {
   category?: string;
   hashtags?: string[];
   image: string;
+  // Photo credit for the cover image (shown nowhere yet; kept for the record).
+  imageCredit?: string;
+  // Set when the cover of an already published article is swapped: the stored
+  // image is replaced only while it still equals this URL, so a cover changed
+  // later in the CMS is never overwritten.
+  replacesImage?: string;
   excerpt: string;
   contentHtml: string;
 };
@@ -145,7 +151,15 @@ async function importQueuedNews() {
     const imported = new Set(result.rows.map((row) => String((row as { key: unknown }).key)));
     for (const item of queue) {
       const markerKey = `${NEWS_IMPORT_PREFIX}${item.id}`;
-      if (imported.has(markerKey)) continue;
+      if (imported.has(markerKey)) {
+        if (item.replacesImage && item.replacesImage !== item.image) {
+          await db.execute(sql`
+            UPDATE news_items SET image = ${item.image}, updated_at = ${new Date().toISOString()}
+            WHERE id = ${item.id} AND image = ${item.replacesImage}
+          `);
+        }
+        continue;
+      }
       const now = new Date().toISOString();
       await db
         .insert(newsItems)

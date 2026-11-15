@@ -37,7 +37,15 @@ Từ khóa tìm (tìm riêng từng cụm): "Masterise Homes", "Masterise Group"
 - Viết bài mới hoàn toàn bằng lời của mình. Tổng hợp dữ kiện từ ít nhất 2 nguồn khi có thể. Không chép câu, không giữ nguyên bố cục hay trình tự đoạn của bài gốc. Trích dẫn trực tiếp tối đa 1 câu ngắn (dưới 15 từ) mỗi nguồn, đặt trong ngoặc kép và ghi rõ nguồn.
 - Chỉ đưa số liệu (giá, tiến độ, diện tích, ngày tháng, chính sách) khi nguồn ghi rõ. Không suy đoán, không hứa hẹn lợi nhuận, không viết như quảng cáo bán hàng.
 - Cuối bài luôn có mục "Nguồn tham khảo" liệt kê tên báo và link bài gốc.
-- Không dùng ảnh của báo. Ảnh đại diện lấy từ ảnh dự án liên quan trên chính web (mục 4). Bài chung về tập đoàn thì dùng ảnh dự án nổi bật nhất được nhắc trong bài.
+**Ảnh đại diện (Phương chốt 15/11/2026):**
+- Mỗi bài dùng một ảnh mới, không trùng ảnh của bài đã đăng (kể cả ảnh dự án đang dùng cho bài khác). `check-news-queue.mjs` báo lỗi nếu trùng.
+- Lấy ảnh trong chính các nguồn thông tin của bài, theo thứ tự ưu tiên:
+  1. Kênh chính thức của chủ đầu tư hoặc đơn vị liên quan: masterisehomes.com (ảnh og:image hoặc ảnh trong bài), trang dự án, thông cáo báo chí của Masterise, trang của trường/đối tác được nói tới trong bài.
+  2. Ảnh trong bài báo nguồn **chỉ khi** chú thích ghi ảnh do chủ đầu tư/đơn vị cung cấp (ví dụ "Ảnh: Masterise Homes", "Ảnh: King's College Wimbledon TP.HCM"). Không dùng ảnh do phóng viên/báo tự chụp (ghi "Ảnh: <tên phóng viên>", "Ảnh: VnExpress"...) hoặc ảnh không rõ nguồn.
+  3. Nếu nguồn không có ảnh phù hợp: dùng ảnh trong gallery dự án trên web (mục 4) mà chưa bài nào dùng.
+- Lấy URL ảnh bằng WebFetch trang nguồn (hỏi danh sách og:image và img trong bài kèm chú thích). Ghi `imageCredit` (đơn vị sở hữu ảnh) trong bài ở hàng chờ, và thêm dòng `<p><em>Ảnh: <đơn vị></em></p>` ngay trước mục "Nguồn tham khảo".
+- Host của ảnh phải có trong `images.remotePatterns` của `next.config.ts`; nếu chưa có thì thêm host đó trong cùng commit (`check-news-queue.mjs` báo lỗi nếu thiếu).
+- Đổi ảnh bài đã đăng: sửa `image` trong hàng chờ và thêm `"replacesImage": "<URL ảnh cũ>"`. Khi triển khai, web chỉ thay ảnh nếu ảnh trong database vẫn là ảnh cũ (ảnh đã sửa trong admin được giữ nguyên).
 
 **Chuẩn SEO:**
 - Tiêu đề 50–70 ký tự, chứa từ khóa chính ở đầu, không giật tít, không viết hoa toàn bộ.
@@ -67,7 +75,8 @@ Bài được đăng bằng cách thêm một phần tử vào cuối mảng tro
   "date": "dd/mm/yyyy (ngày đăng, giờ Việt Nam)",
   "category": "Tin tức",
   "hashtags": ["#masterise-homes"],
-  "image": "https://... (ảnh dự án lấy từ site-data)",
+  "image": "https://... (ảnh mới lấy từ nguồn, xem mục 3)",
+  "imageCredit": "Masterise Homes",
   "excerpt": "120–160 ký tự",
   "contentHtml": "<p>...</p><h2>...</h2>..."
 }

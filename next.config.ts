@@ -31,6 +31,8 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 86400,
     remotePatterns: [
       { protocol: "https", hostname: "masterisehomes.com" },
+      { protocol: "https", hostname: "**.masterisehomes.com" },
+      { protocol: "https", hostname: "web-mh-api.goterest.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "designbuild.vn" },
       { protocol: "https", hostname: "gland.com.vn" },
