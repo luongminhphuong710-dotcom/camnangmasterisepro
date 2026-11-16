@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { STORE_REGISTRATION_FORM_URL } from "@/lib/site-links";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -52,14 +53,15 @@ export function Header({ communityUrl = defaultCommunityUrl, logoUrl }: { commun
           <a href={communityUrl} target="_blank" rel="noreferrer" onClick={() => setIsOpen(false)}>
             Cộng đồng
           </a>
-          <Link
+          <a
             className="header-cta"
-            href="/contact"
-            aria-current={pathname === "/contact" ? "page" : undefined}
+            href={STORE_REGISTRATION_FORM_URL}
+            target="_blank"
+            rel="noreferrer"
             onClick={() => setIsOpen(false)}
           >
             Đăng gian hàng
-          </Link>
+          </a>
         </nav>
       </div>
     </header>
