@@ -40,9 +40,9 @@ queue.forEach((item, index) => {
     if (typeof item[key] !== "string" || !item[key].trim()) errors.push(`${at}: missing ${key}`);
   }
   if (item.date && !/^\d{2}\/\d{2}\/\d{4}$/.test(item.date)) errors.push(`${at}: date must be dd/mm/yyyy`);
-  const localImage = typeof item.image === "string" && item.image.startsWith("/news/");
+  const localImage = typeof item.image === "string" && item.image.startsWith("/anh-bai-viet/");
   if (item.image && !localImage && !/^https:\/\//.test(item.image))
-    errors.push(`${at}: image must be an https URL or a file in public/news/ (path "/news/<file>")`);
+    errors.push(`${at}: image must be an https URL or a file in public/anh-bai-viet/ (path "/anh-bai-viet/<file>")`);
   if (localImage) {
     if (!existsSync(new URL(`../public${item.image}`, import.meta.url))) errors.push(`${at}: ${item.image} not found in public/`);
     if (imagesUsed.has(item.image)) errors.push(`${at}: image already used by ${imagesUsed.get(item.image)} (each article needs its own cover)`);
