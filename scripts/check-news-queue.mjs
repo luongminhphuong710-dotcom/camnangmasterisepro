@@ -1,6 +1,6 @@
 // Validates src/content/news-queue.json before the content automation pushes it.
 // Usage: node scripts/check-news-queue.mjs
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const file = new URL("../src/content/news-queue.json", import.meta.url);
 const errors = [];
@@ -40,7 +40,16 @@ queue.forEach((item, index) => {
     if (typeof item[key] !== "string" || !item[key].trim()) errors.push(`${at}: missing ${key}`);
   }
   if (item.date && !/^\d{2}\/\d{2}\/\d{4}$/.test(item.date)) errors.push(`${at}: date must be dd/mm/yyyy`);
-  if (item.image && !/^https:\/\//.test(item.image)) errors.push(`${at}: image must be an https URL`);
+  const localImage = typeof item.image === "string" && item.image.startsWith("/news/");
+  if (item.image && !localImage && !/^https:\/\//.test(item.image))
+    errors.push(`${at}: image must be an https URL or a file in public/news/ (path "/news/<file>")`);
+  if (localImage) {
+    if (!existsSync(new URL(`../public${item.image}`, import.meta.url))) errors.push(`${at}: ${item.image} not found in public/`);
+    if (imagesUsed.has(item.image)) errors.push(`${at}: image already used by ${imagesUsed.get(item.image)} (each article needs its own cover)`);
+    else imagesUsed.set(item.image, item.id);
+  }
+  if (item.revision !== undefined && !(Number.isInteger(item.revision) && item.revision >= 2))
+    errors.push(`${at}: revision must be an integer >= 2`);
   if (item.image && /^https:\/\//.test(item.image)) {
     const host = new URL(item.image).hostname;
     if (!hostAllowed(host)) errors.push(`${at}: image host ${host} is not in next.config.ts images.remotePatterns (add it in the same commit)`);

@@ -139,9 +139,39 @@ type QueuedNews = {
   // image is replaced only while it still equals this URL, so a cover changed
   // later in the CMS is never overwritten.
   replacesImage?: string;
+  // Bump (2, 3, ...) to rewrite an already published article from the queue:
+  // title, excerpt, content, image, hashtags and project are overwritten once per
+  // revision (marker news-revision:<id> keeps the last revision applied).
+  revision?: number;
   excerpt: string;
   contentHtml: string;
 };
+
+const NEWS_REVISION_PREFIX = "news-revision:";
+
+async function applyNewsRevision(item: QueuedNews, applied: Map<string, number>) {
+  const revision = Number(item.revision || 0);
+  const key = `${NEWS_REVISION_PREFIX}${item.id}`;
+  if (!revision || (applied.get(key) || 0) >= revision) return;
+  const now = new Date().toISOString();
+  await db
+    .update(newsItems)
+    .set({
+      title: item.title,
+      projectId: item.projectId || "",
+      region: item.region || "",
+      hashtags: item.hashtags || [],
+      image: item.image,
+      excerpt: item.excerpt,
+      contentHtml: item.contentHtml,
+      updatedAt: now,
+    })
+    .where(sql`${newsItems.id} = ${item.id}`);
+  await db
+    .insert(siteSettings)
+    .values({ key, value: { revision, appliedAt: now }, updatedAt: now })
+    .onConflictDoUpdate({ target: siteSettings.key, set: { value: { revision, appliedAt: now }, updatedAt: now } });
+}
 
 async function importQueuedNews() {
   const queue = (newsQueue as QueuedNews[]).filter((item) => item?.id && item.title && item.contentHtml);
@@ -149,9 +179,19 @@ async function importQueuedNews() {
   try {
     const result = await db.execute(sql`SELECT key FROM site_settings WHERE key LIKE ${`${NEWS_IMPORT_PREFIX}%`}`);
     const imported = new Set(result.rows.map((row) => String((row as { key: unknown }).key)));
+    const revisions = await db.execute(
+      sql`SELECT key, value FROM site_settings WHERE key LIKE ${`${NEWS_REVISION_PREFIX}%`}`,
+    );
+    const applied = new Map(
+      revisions.rows.map((row) => {
+        const { key, value } = row as { key: unknown; value: unknown };
+        return [String(key), Number((value as { revision?: unknown } | null)?.revision || 0)] as const;
+      }),
+    );
     for (const item of queue) {
       const markerKey = `${NEWS_IMPORT_PREFIX}${item.id}`;
       if (imported.has(markerKey)) {
+        await applyNewsRevision(item, applied);
         if (item.replacesImage && item.replacesImage !== item.image) {
           await db.execute(sql`
             UPDATE news_items SET image = ${item.image}, updated_at = ${new Date().toISOString()}

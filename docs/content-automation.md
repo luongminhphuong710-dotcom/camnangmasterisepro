@@ -46,6 +46,9 @@ Từ khóa tìm (tìm riêng từng cụm): "Masterise Homes", "Masterise Group"
 - Lấy URL ảnh bằng WebFetch trang nguồn (hỏi danh sách og:image và img trong bài kèm chú thích). Ghi `imageCredit` (đơn vị sở hữu ảnh) trong bài ở hàng chờ, và thêm dòng `<p><em>Ảnh: <đơn vị></em></p>` ngay trước mục "Nguồn tham khảo".
 - Host của ảnh phải có trong `images.remotePatterns` của `next.config.ts`; nếu chưa có thì thêm host đó trong cùng commit (`check-news-queue.mjs` báo lỗi nếu thiếu).
 - Đổi ảnh bài đã đăng: sửa `image` trong hàng chờ và thêm `"replacesImage": "<URL ảnh cũ>"`. Khi triển khai, web chỉ thay ảnh nếu ảnh trong database vẫn là ảnh cũ (ảnh đã sửa trong admin được giữ nguyên).
+- Ảnh Phương gửi trong chat (infographic, ảnh chủ đầu tư phát hành): lưu vào `public/news/<id-bài>.jpg` (rộng 1600px, JPEG ~85%), đặt `"image": "/news/<file>"`. Ảnh nằm trên chính web nên không phụ thuộc host ngoài.
+
+**Sửa lại bài đã đăng (nội dung, tiêu đề, ảnh):** giữ nguyên `id` (link bài không đổi), sửa các trường trong hàng chờ và thêm `"revision": 2` (lần sửa sau tăng lên 3, 4...). Khi triển khai, web ghi đè tiêu đề, tóm tắt, nội dung, ảnh, hashtag, dự án của bài đúng một lần cho mỗi số revision (mốc `news-revision:<id>` trong `site_settings`). Lưu ý: thao tác này ghi đè cả chỉnh sửa đã làm trong admin. Cập nhật tab "Kế hoạch tháng" và "Nhật ký đăng bài" theo tiêu đề mới.
 
 **Chuẩn SEO:**
 - Tiêu đề 50–70 ký tự, chứa từ khóa chính ở đầu, không giật tít, không viết hoa toàn bộ.

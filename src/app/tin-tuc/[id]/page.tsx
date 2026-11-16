@@ -4,7 +4,7 @@ import Link from "next/link";
 import { NewsCard } from "@/components/NewsCard";
 import { normalize } from "@/lib/helpers";
 import { getSiteData } from "@/lib/runtime-data";
-import { jsonLd, seoMetadata, siteName, siteUrl } from "@/lib/seo";
+import { absoluteUrl, jsonLd, seoMetadata, siteName, siteUrl } from "@/lib/seo";
 import type { NewsItem } from "@/lib/site-types";
 
 type ArticlePageProps = {
@@ -69,7 +69,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     "@type": "Article",
     headline: article.title,
     description: article.excerpt,
-    image: article.image,
+    image: article.image.startsWith("/") ? absoluteUrl(article.image) : article.image,
     datePublished: article.createdAt || toIsoDate(article.date),
     dateModified: article.updatedAt || article.createdAt || toIsoDate(article.date),
     mainEntityOfPage: `${siteUrl}/tin-tuc/${article.id}`,
