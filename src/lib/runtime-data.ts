@@ -143,11 +143,16 @@ type QueuedNews = {
   // title, excerpt, content, image, hashtags and project are overwritten once per
   // revision (marker news-revision:<id> keeps the last revision applied).
   revision?: number;
+  // true = take the article off the website (deleted once from news_items; the
+  // import marker stays so it is never imported again). Content stays in the queue
+  // for the record.
+  removed?: boolean;
   excerpt: string;
   contentHtml: string;
 };
 
 const NEWS_REVISION_PREFIX = "news-revision:";
+const NEWS_REMOVED_PREFIX = "news-removed:";
 
 async function applyNewsRevision(item: QueuedNews, applied: Map<string, number>) {
   const revision = Number(item.revision || 0);
@@ -182,6 +187,10 @@ async function importQueuedNews() {
     const revisions = await db.execute(
       sql`SELECT key, value FROM site_settings WHERE key LIKE ${`${NEWS_REVISION_PREFIX}%`}`,
     );
+    const removedRows = await db.execute(
+      sql`SELECT key FROM site_settings WHERE key LIKE ${`${NEWS_REMOVED_PREFIX}%`}`,
+    );
+    const removedMarkers = new Set(removedRows.rows.map((row) => String((row as { key: unknown }).key)));
     const applied = new Map(
       revisions.rows.map((row) => {
         const { key, value } = row as { key: unknown; value: unknown };
@@ -190,6 +199,21 @@ async function importQueuedNews() {
     );
     for (const item of queue) {
       const markerKey = `${NEWS_IMPORT_PREFIX}${item.id}`;
+      if (item.removed) {
+        const removedKey = `${NEWS_REMOVED_PREFIX}${item.id}`;
+        if (!removedMarkers.has(removedKey)) {
+          const now = new Date().toISOString();
+          await db.execute(sql`DELETE FROM news_items WHERE id = ${item.id}`);
+          await db
+            .insert(siteSettings)
+            .values([
+              { key: removedKey, value: { removedAt: now }, updatedAt: now },
+              { key: markerKey, value: { importedAt: now, removed: true }, updatedAt: now },
+            ])
+            .onConflictDoNothing();
+        }
+        continue;
+      }
       if (imported.has(markerKey)) {
         await applyNewsRevision(item, applied);
         if (item.replacesImage && item.replacesImage !== item.image) {

@@ -48,6 +48,8 @@ Từ khóa tìm (tìm riêng từng cụm): "Masterise Homes", "Masterise Group"
 - Đổi ảnh bài đã đăng: sửa `image` trong hàng chờ và thêm `"replacesImage": "<URL ảnh cũ>"`. Khi triển khai, web chỉ thay ảnh nếu ảnh trong database vẫn là ảnh cũ (ảnh đã sửa trong admin được giữ nguyên).
 - Ảnh Phương gửi trong chat (infographic, ảnh chủ đầu tư phát hành): lưu vào `public/anh-bai-viet/<id-bài>.jpg` (rộng 1600px, JPEG ~85%), đặt `"image": "/anh-bai-viet/<file>"`. Ảnh nằm trên chính web nên không phụ thuộc host ngoài. Không dùng thư mục `public/news/` vì `/news/*` được chuyển hướng sang `/tin-tuc/*`.
 
+**Gỡ bài khỏi web:** thêm `"removed": true` vào bài trong hàng chờ (giữ nguyên nội dung để lưu vết). Khi triển khai, web xóa bài khỏi `news_items` một lần (mốc `news-removed:<id>`) và không nhập lại. Dùng khi Phương yêu cầu thay bài; đổi Trạng thái dòng tương ứng trong Sheet thành "Bỏ qua" hoặc cập nhật sang bài thay thế.
+
 **Sửa lại bài đã đăng (nội dung, tiêu đề, ảnh):** giữ nguyên `id` (link bài không đổi), sửa các trường trong hàng chờ và thêm `"revision": 2` (lần sửa sau tăng lên 3, 4...). Khi triển khai, web ghi đè tiêu đề, tóm tắt, nội dung, ảnh, hashtag, dự án của bài đúng một lần cho mỗi số revision (mốc `news-revision:<id>` trong `site_settings`). Lưu ý: thao tác này ghi đè cả chỉnh sửa đã làm trong admin. Cập nhật tab "Kế hoạch tháng" và "Nhật ký đăng bài" theo tiêu đề mới.
 
 **Chuẩn SEO:**
