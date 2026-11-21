@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "designbuild.vn" },
       { protocol: "https", hostname: "gland.com.vn" },
       { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "cafefcdn.com" },
     ],
   },
 };
